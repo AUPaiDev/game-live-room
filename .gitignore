@@ -3,9 +3,9 @@
 config.yaml
 *.local.yaml
 
-# 构建产物
-/bin/
-/dist/
+# 构建产物 — 所有二进制统一放 bin/
+/bin/*
+!/bin/.gitkeep
 *.exe
 *.exe~
 *.dll

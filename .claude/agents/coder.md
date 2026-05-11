@@ -75,7 +75,7 @@ WebSocket **仅用于服务端推送**，admin 的控制指令走 HTTP REST API�
 
 ## 完成标准
 
-1. `go vet ./...` + `go build ./...` 全绿
+1. `go vet ./...` + `go build -o bin/server ./cmd/server` 全绿（二进制输出到 `bin/`，不要放根目录）
 2. 没留 TODO/mock/占位
 3. `.env.example` 已同步更新（如有新配置项）
 4. overlay 页面在 OBS 浏览器源中背景透明（可用 `background: red` 临时测试后还原）
