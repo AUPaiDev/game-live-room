@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"sync"
+
 	"game-live-room/internal/bilibili"
 	"game-live-room/internal/config"
 	"game-live-room/internal/game/gift"
@@ -29,6 +31,7 @@ type Engine struct {
 	quiz *quiz.Handler
 	vote *vote.Handler
 
+	mu         sync.RWMutex
 	activeGame string // "" / "quiz" / "vote"
 }
 
@@ -80,14 +83,14 @@ func (e *Engine) HandleAdminCmd(action string, params map[string]interface{}) er
 		return e.startQuiz(params)
 	case "stop_quiz":
 		e.quiz.Stop()
-		e.activeGame = ""
+		e.setActiveGame("")
 		return nil
 	case "start_vote":
 		return e.startVote(params)
 	case "stop_vote":
 		err := e.vote.Stop()
 		if err == nil {
-			e.activeGame = ""
+			e.setActiveGame("")
 		}
 		return err
 	case "reset_vote":
@@ -115,7 +118,7 @@ func (e *Engine) startQuiz(params map[string]interface{}) error {
 	if err := e.quiz.Start(questionID); err != nil {
 		return err
 	}
-	e.activeGame = "quiz"
+	e.setActiveGame("quiz")
 	return nil
 }
 
@@ -127,16 +130,24 @@ func (e *Engine) startVote(params map[string]interface{}) error {
 	if err := e.vote.Start(sessionID); err != nil {
 		return err
 	}
-	e.activeGame = "vote"
+	e.setActiveGame("vote")
 	return nil
 }
 
 // ActiveGame returns the name of the currently active game.
 func (e *Engine) ActiveGame() string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	return e.activeGame
 }
 
 // VoteHandler returns the vote handler for direct access.
 func (e *Engine) VoteHandler() *vote.Handler {
 	return e.vote
+}
+
+func (e *Engine) setActiveGame(name string) {
+	e.mu.Lock()
+	e.activeGame = name
+	e.mu.Unlock()
 }

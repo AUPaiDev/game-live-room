@@ -77,16 +77,27 @@ func (h *Hub) Run(ctx context.Context) {
 			}
 			h.clientsMu.Unlock()
 		case msg := <-h.broadcast:
+			data := h.marshal(msg)
+			var dead []*client
 			h.clientsMu.RLock()
 			for c := range h.clients {
 				select {
-				case c.send <- h.marshal(msg):
+				case c.send <- data:
 				default:
-					close(c.send)
-					delete(h.clients, c)
+					dead = append(dead, c)
 				}
 			}
 			h.clientsMu.RUnlock()
+			if len(dead) > 0 {
+				h.clientsMu.Lock()
+				for _, c := range dead {
+					if _, ok := h.clients[c]; ok {
+						delete(h.clients, c)
+						close(c.send)
+					}
+				}
+				h.clientsMu.Unlock()
+			}
 		}
 	}
 }

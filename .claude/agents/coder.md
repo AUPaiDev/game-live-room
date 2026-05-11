@@ -60,18 +60,18 @@ tools: Read, Grep, Glob, Edit, Write, Bash
   - 操作要有即时反馈（loading 状态、成功/失败提示）
   - WebSocket 断线要有明显的状态提示
 
-### WebSocket 消息格式（统一规范）
+### WebSocket 消息格式（server → client 单向推送）
+
+WebSocket **仅用于服务端推送**，admin 的控制指令走 HTTP REST API（`POST /api/game/start` 等），不走 WebSocket。
 
 ```json
-// server → client
-{ "type": "game_state", "game": "quiz", "payload": {...} }
-{ "type": "event", "event": "gift", "payload": {...} }
-{ "type": "module_toggle", "module": "scoreboard", "visible": true }
-
-// client → server（admin 操作）
-{ "type": "cmd", "action": "start_game", "game": "quiz", "params": {...} }
-{ "type": "cmd", "action": "trigger_event", "event": "gift_alert", "params": {...} }
+// server → client（admin 和 overlay 都会收到）
+{ "type": "game_state", "payload": { "game": "quiz", "state": {...} } }
+{ "type": "live_event", "payload": { "cmd": "SEND_GIFT", "username": "...", ... } }
+{ "type": "module_toggle", "payload": { "module": "scoreboard", "visible": true } }
 ```
+
+前端不需要通过 WebSocket 发送任何消息，只需监听。
 
 ## 完成标准
 
