@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: game_live_room_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: game_live_room
+    # MySQL 不对外暴露端口，只在内部网络访问
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build: .
+    container_name: game_live_room_server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "10010:8080"
+    environment:
+      - MYSQL_DSN=root:${MYSQL_ROOT_PASSWORD}@tcp(mysql:3306)/game_live_room?charset=utf8mb4&parseTime=True&loc=Local
+      - SERVER_PORT=8080
+      - BILI_ROOM_ID=${BILI_ROOM_ID}
+      - BILI_COOKIE=${BILI_COOKIE}
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./assets:/app/assets
+
+  # admin 后台：10020 → Go server /admin/
+  admin:
+    image: nginx:1.27-alpine
+    container_name: game_live_room_admin
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "10020:80"
+    volumes:
+      - ./nginx/admin.conf:/etc/nginx/conf.d/default.conf:ro
+
+  # overlay 前台：10021 → Go server /overlay/
+  overlay:
+    image: nginx:1.27-alpine
+    container_name: game_live_room_overlay
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "10021:80"
+    volumes:
+      - ./nginx/overlay.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  mysql_data:

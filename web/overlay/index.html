@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Overlay</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 1920px; height: 1080px;
+  background: transparent;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+/* All modules: absolute positioned, hidden by default via opacity */
+.module {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.module.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---- Gift Alert (top-right) ---- */
+#gift-alert {
+  top: 40px; right: 40px;
+  width: 360px;
+  transform: translateX(20px);
+}
+#gift-alert.visible { transform: translateX(0); }
+
+.gift-card {
+  background: linear-gradient(135deg, rgba(233,69,96,0.9), rgba(22,33,62,0.95));
+  border: 1px solid rgba(233,69,96,0.5);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+.gift-icon { font-size: 32px; }
+.gift-info { flex: 1; }
+.gift-user { font-size: 15px; font-weight: 600; color: #fff; }
+.gift-text { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+.gift-price { font-size: 13px; color: #ffd700; font-weight: 600; }
+
+/* ---- SC Alert (top-right, below gift) ---- */
+#sc-alert {
+  top: 140px; right: 40px;
+  width: 380px;
+  transform: translateX(20px);
+}
+#sc-alert.visible { transform: translateX(0); }
+
+.sc-card {
+  background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(22,33,62,0.95));
+  border: 2px solid rgba(255,215,0,0.6);
+  border-radius: 12px;
+  padding: 14px 18px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+.sc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sc-price { background: #ffd700; color: #1a1a2e; font-size: 14px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.sc-user { font-size: 14px; font-weight: 600; color: #ffd700; }
+.sc-text { font-size: 14px; color: #fff; line-height: 1.5; }
+
+/* ---- Scoreboard (right side) ---- */
+#scoreboard {
+  top: 200px; right: 40px;
+  width: 280px;
+  transform: translateX(20px);
+}
+#scoreboard.visible { transform: translateX(0); }
+
+.scoreboard-wrap {
+  background: rgba(22,33,62,0.92);
+  border: 1px solid rgba(233,69,96,0.4);
+  border-radius: 12px;
+  padding: 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+.scoreboard-title {
+  font-size: 14px; font-weight: 700; color: #e94560;
+  text-align: center; margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+.sb-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.sb-rank { width: 20px; font-size: 12px; color: #aaa; text-align: center; }
+.sb-name { flex: 1; font-size: 13px; color: #e0e0e0; }
+.sb-bar-wrap { width: 80px; background: rgba(255,255,255,0.1); border-radius: 3px; height: 6px; }
+.sb-bar { height: 100%; background: #e94560; border-radius: 3px; transition: width 0.6s ease; }
+.sb-score { width: 40px; text-align: right; font-size: 13px; font-weight: 600; color: #e94560; }
+
+/* ---- Quiz Display (center) ---- */
+#quiz-display {
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  width: 700px;
+}
+#quiz-display.visible { transform: translate(-50%, -50%) scale(1); }
+
+.quiz-wrap {
+  background: rgba(22,33,62,0.95);
+  border: 1px solid rgba(233,69,96,0.5);
+  border-radius: 16px;
+  padding: 28px 32px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+}
+.quiz-question {
+  font-size: 20px; font-weight: 600; color: #fff;
+  line-height: 1.5; margin-bottom: 20px; text-align: center;
+}
+.quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.quiz-option {
+  background: rgba(15,52,96,0.8);
+  border: 1px solid rgba(233,69,96,0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 15px; color: #e0e0e0;
+  display: flex; align-items: center; gap: 10px;
+}
+.quiz-option-label {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #e94560; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.quiz-timer-bar-wrap {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px; height: 8px; overflow: hidden;
+}
+.quiz-timer-bar {
+  height: 100%; background: #e94560; border-radius: 4px;
+  transition: width 1s linear;
+}
+.quiz-timer-text {
+  text-align: center; font-size: 13px; color: #aaa; margin-top: 6px;
+}
+
+/* ---- Quiz Result (center) ---- */
+#quiz-result {
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  width: 600px;
+}
+#quiz-result.visible { transform: translate(-50%, -50%) scale(1); }
+
+.result-wrap {
+  background: rgba(22,33,62,0.95);
+  border: 1px solid rgba(76,175,80,0.5);
+  border-radius: 16px;
+  padding: 28px 32px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  text-align: center;
+}
+.result-title { font-size: 18px; font-weight: 700; color: #4caf50; margin-bottom: 16px; }
+.result-answer {
+  font-size: 16px; color: #fff; margin-bottom: 12px;
+  background: rgba(76,175,80,0.15); border-radius: 8px; padding: 10px;
+}
+.result-stats { display: flex; gap: 24px; justify-content: center; margin-top: 16px; }
+.result-stat { text-align: center; }
+.result-stat-value { font-size: 28px; font-weight: 700; color: #e94560; }
+.result-stat-label { font-size: 12px; color: #aaa; margin-top: 2px; }
+.result-explanation { font-size: 13px; color: #aaa; margin-top: 14px; line-height: 1.5; }
+
+/* ---- Danmaku Wall (left side) ---- */
+#danmaku-wall {
+  bottom: 40px; left: 40px;
+  width: 320px; height: 400px;
+  overflow: hidden;
+}
+
+.danmaku-list {
+  display: flex; flex-direction: column-reverse;
+  height: 100%; overflow: hidden;
+}
+.danmaku-item {
+  background: rgba(22,33,62,0.75);
+  border-radius: 20px;
+  padding: 6px 14px;
+  margin-top: 6px;
+  font-size: 14px; color: #e0e0e0;
+  backdrop-filter: blur(4px);
+  animation: slideIn 0.3s ease;
+  flex-shrink: 0;
+}
+.danmaku-item .dm-user { color: #4fc3f7; font-weight: 600; margin-right: 6px; }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- Gift Alert -->
+<div class="module" id="gift-alert">
+  <div class="gift-card">
+    <div class="gift-icon" id="giftIcon">🎁</div>
+    <div class="gift-info">
+      <div class="gift-user" id="giftUser"></div>
+      <div class="gift-text" id="giftText"></div>
+    </div>
+    <div class="gift-price" id="giftPrice"></div>
+  </div>
+</div>
+
+<!-- SC Alert -->
+<div class="module" id="sc-alert">
+  <div class="sc-card">
+    <div class="sc-header">
+      <span class="sc-price" id="scPrice"></span>
+      <span class="sc-user" id="scUser"></span>
+    </div>
+    <div class="sc-text" id="scText"></div>
+  </div>
+</div>
+
+<!-- Scoreboard -->
+<div class="module" id="scoreboard">
+  <div class="scoreboard-wrap">
+    <div class="scoreboard-title">礼物投票</div>
+    <div id="scoreboardRows"></div>
+  </div>
+</div>
+
+<!-- Quiz Display -->
+<div class="module" id="quiz-display">
+  <div class="quiz-wrap">
+    <div class="quiz-question" id="quizQuestion"></div>
+    <div class="quiz-options" id="quizOptions"></div>
+    <div class="quiz-timer-bar-wrap">
+      <div class="quiz-timer-bar" id="quizTimerBar" style="width:100%"></div>
+    </div>
+    <div class="quiz-timer-text" id="quizTimerText"></div>
+  </div>
+</div>
+
+<!-- Quiz Result -->
+<div class="module" id="quiz-result">
+  <div class="result-wrap">
+    <div class="result-title">答题结果</div>
+    <div class="result-answer" id="resultAnswer"></div>
+    <div class="result-stats">
+      <div class="result-stat">
+        <div class="result-stat-value" id="resultTotal">0</div>
+        <div class="result-stat-label">参与人数</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-value" id="resultCorrect">0</div>
+        <div class="result-stat-label">答对人数</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-value" id="resultRatio">0%</div>
+        <div class="result-stat-label">正确率</div>
+      </div>
+    </div>
+    <div class="result-explanation" id="resultExplanation"></div>
+  </div>
+</div>
+
+<!-- Danmaku Wall -->
+<div class="module" id="danmaku-wall">
+  <div class="danmaku-list" id="danmakuList"></div>
+</div>
+
+<script>
+// ---- WebSocket with auto-reconnect ----
+let ws = null;
+let wsTimer = null;
+let giftHideTimer = null;
+let scHideTimer = null;
+let quizTimerInterval = null;
+let quizTotalTime = 30;
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws?type=overlay`);
+  ws.onopen = () => { clearTimeout(wsTimer); };
+  ws.onclose = () => { wsTimer = setTimeout(connect, 3000); };
+  ws.onerror = () => {};
+  ws.onmessage = (e) => {
+    try { handleMessage(JSON.parse(e.data)); } catch (_) {}
+  };
+}
+
+function handleMessage(msg) {
+  if (msg.type === 'module_toggle') {
+    const p = msg.payload;
+    if (p) toggleModule(p.module, p.visible);
+  } else if (msg.type === 'live_event') {
+    const p = msg.payload;
+    if (!p) return;
+    const cmd = p.cmd || p.Cmd || '';
+    if (cmd === 'DANMU_MSG') appendDanmaku(p);
+    if (cmd === 'SEND_GIFT') showGiftAlert(p);
+    if (cmd === 'SUPER_CHAT_MESSAGE') showSCAlert(p);
+  } else if (msg.type === 'game_state') {
+    const p = msg.payload;
+    if (!p) return;
+    if (p.game === 'quiz') showQuiz(p.state);
+    if (p.game === 'quiz_result') showQuizResult(p.state);
+    if (p.game === 'vote') updateScoreboard(p.state);
+  }
+}
+
+function toggleModule(name, visible) {
+  const el = document.getElementById(name);
+  if (!el) return;
+  if (visible) {
+    el.classList.add('visible');
+  } else {
+    el.classList.remove('visible');
+  }
+}
+
+// ---- Gift Alert ----
+function showGiftAlert(p) {
+  const user = p.username || p.Username || '';
+  const gift = p.gift_name || p.GiftName || '';
+  const count = p.count || p.GiftCount || 1;
+  const price = p.price || p.Price || 0;
+
+  document.getElementById('giftUser').textContent = user;
+  document.getElementById('giftText').textContent = `送出 ${gift} x${count}`;
+  document.getElementById('giftPrice').textContent = price > 0 ? `${price}金瓜子` : '';
+  document.getElementById('giftIcon').textContent = getGiftEmoji(gift);
+
+  toggleModule('gift-alert', true);
+  clearTimeout(giftHideTimer);
+  giftHideTimer = setTimeout(() => toggleModule('gift-alert', false), 4000);
+}
+
+function getGiftEmoji(name) {
+  const map = { '辣条': '🌶️', '小心心': '💗', '礼物': '🎁', '舰长': '⚓', '提督': '🚢', '总督': '👑' };
+  return map[name] || '🎁';
+}
+
+// ---- SC Alert ----
+function showSCAlert(p) {
+  const user = p.username || p.Username || '';
+  const text = p.text || p.Text || '';
+  const price = p.price || p.Price || 0;
+
+  document.getElementById('scUser').textContent = user;
+  document.getElementById('scText').textContent = text;
+  document.getElementById('scPrice').textContent = `¥${price}`;
+
+  toggleModule('sc-alert', true);
+  clearTimeout(scHideTimer);
+  scHideTimer = setTimeout(() => toggleModule('sc-alert', false), 8000);
+}
+
+// ---- Scoreboard ----
+function updateScoreboard(state) {
+  if (!state) return;
+  const scores = state.scores || {};
+  const slots = state.slots || [];
+  const maxScore = Math.max(1, ...Object.values(scores).map(Number));
+
+  const sorted = [...slots].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0));
+  const rows = document.getElementById('scoreboardRows');
+  rows.innerHTML = sorted.map((slot, i) => {
+    const score = scores[slot.id] || 0;
+    const pct = Math.round((score / maxScore) * 100);
+    return `<div class="sb-row">
+      <div class="sb-rank">${i + 1}</div>
+      <div class="sb-name">${slot.name}</div>
+      <div class="sb-bar-wrap"><div class="sb-bar" style="width:${pct}%"></div></div>
+      <div class="sb-score">${score}</div>
+    </div>`;
+  }).join('');
+
+  if (state.active) toggleModule('scoreboard', true);
+}
+
+// ---- Quiz Display ----
+const LABELS = ['A', 'B', 'C', 'D'];
+function showQuiz(state) {
+  if (!state) return;
+  document.getElementById('quizQuestion').textContent = state.question || '';
+
+  const opts = state.options || [];
+  document.getElementById('quizOptions').innerHTML = opts.map((opt, i) =>
+    `<div class="quiz-option">
+      <div class="quiz-option-label">${LABELS[i]}</div>
+      <span>${opt}</span>
+    </div>`
+  ).join('');
+
+  quizTotalTime = state.timeout || 30;
+  startTimerBar(quizTotalTime);
+  toggleModule('quiz-display', true);
+  toggleModule('quiz-result', false);
+}
+
+function startTimerBar(seconds) {
+  clearInterval(quizTimerInterval);
+  let left = seconds;
+  const bar = document.getElementById('quizTimerBar');
+  const text = document.getElementById('quizTimerText');
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+
+  quizTimerInterval = setInterval(() => {
+    left--;
+    const pct = Math.max(0, (left / seconds) * 100);
+    bar.style.transition = 'width 1s linear';
+    bar.style.width = pct + '%';
+    text.textContent = `${left}s`;
+    if (left <= 0) clearInterval(quizTimerInterval);
+  }, 1000);
+}
+
+// ---- Quiz Result ----
+function showQuizResult(state) {
+  if (!state) return;
+  clearInterval(quizTimerInterval);
+
+  const opts = state.options || [];
+  const answerIdx = state.answer || 0;
+  const answerText = opts[answerIdx] ? `${LABELS[answerIdx]}. ${opts[answerIdx]}` : '';
+  document.getElementById('resultAnswer').textContent = `正确答案: ${answerText}`;
+  document.getElementById('resultTotal').textContent = state.total_answers || 0;
+  document.getElementById('resultCorrect').textContent = state.correct_count || 0;
+  document.getElementById('resultRatio').textContent = ((state.correct_ratio || 0) * 100).toFixed(1) + '%';
+  document.getElementById('resultExplanation').textContent = state.explanation || '';
+
+  toggleModule('quiz-display', false);
+  toggleModule('quiz-result', true);
+
+  setTimeout(() => toggleModule('quiz-result', false), 10000);
+}
+
+// ---- Danmaku Wall ----
+const MAX_DANMAKU = 20;
+function appendDanmaku(p) {
+  const user = p.username || p.Username || '';
+  const text = p.text || p.Text || '';
+  if (!text) return;
+
+  const list = document.getElementById('danmakuList');
+  const item = document.createElement('div');
+  item.className = 'danmaku-item';
+  item.innerHTML = `<span class="dm-user">${escHtml(user)}</span>${escHtml(text)}`;
+  list.insertBefore(item, list.firstChild);
+
+  while (list.children.length > MAX_DANMAKU) {
+    list.removeChild(list.lastChild);
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ---- Init ----
+connect();
+// Show danmaku wall by default
+toggleModule('danmaku-wall', true);
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+# 敏感配置（严禁提交）
+.env
+config.yaml
+*.local.yaml
+
+# 构建产物
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go
+*.test
+*.out
+vendor/
+go.sum.bak
+
+# 题库媒体资源（可能含版权内容，不进仓库）
+/assets/quiz/
+/data/
+
+# 日志
+*.log
+logs/
+
+# 数据库迁移状态
+.migrate_lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker 本地覆盖
+docker-compose.override.yml
+
+# Node（如有前端构建工具）
+node_modules/

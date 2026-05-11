@@ -1,0 +1,30 @@
+server:
+  port: 8080
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: "your_password_here"
+  database: "game_live_room"
+
+bilibili:
+  room_id: 0                          # 填入你的直播间真实 room_id
+  cookie: ""                          # 填入 SESSDATA=xxx; bili_jct=xxx; DedeUserID=xxx
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+  danmaku_ws_url: "wss://broadcastlv.chat.bilibili.com/sub"
+
+game:
+  gift_trigger:
+    enabled: true
+    rules: []                         # 礼物触发规则，在 admin 页面配置
+  sc_trigger:
+    enabled: true
+    min_price: 30                     # SC 触发最低金额（元）
+  quiz:
+    enabled: true
+    answer_timeout: 30                # 答题超时秒数
+    min_correct_ratio: 0.1            # 最低正确率才显示结果
+  vote:
+    enabled: true
+    slots: []                         # 麦位配置，在 admin 页面配置
