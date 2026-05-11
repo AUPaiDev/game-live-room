@@ -15,9 +15,7 @@ tools: Read, Grep, Glob, Bash, Edit
 端口约定（公开信息，无敏感性）：
 | 服务 | 容器内端口 | 宿主机端口 |
 |------|-----------|-----------|
-| Go server（API + WebSocket） | 8080 | 10010 |
-| admin 前端（nginx） | 80 | 10020 |
-| overlay 前端（nginx） | 80 | 10021 |
+| Go server（API + WebSocket + admin + overlay） | 8080 | 10010 |
 | MySQL | 3306 | 不对外暴露 |
 
 ## 部署前安全检查（**每次 commit/push 必做，不可跳过**）

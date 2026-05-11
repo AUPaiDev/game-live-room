@@ -34,11 +34,11 @@ docker compose logs --tail=50 server
 # 健康检查（注意：路径是 /api/health，不是 /health）
 curl -sf http://localhost:10010/api/health
 
-# admin 页面可访问（通过 nginx，端口 10020）
-curl -sf -o /dev/null -w "%{http_code}" http://localhost:10020/
+# admin 页面可访问（直接访问 Go server）
+curl -sf -o /dev/null -w "%{http_code}" http://localhost:10010/admin/
 
-# overlay 页面可访问（通过 nginx，端口 10021）
-curl -sf -o /dev/null -w "%{http_code}" http://localhost:10021/
+# overlay 页面可访问（直接访问 Go server）
+curl -sf -o /dev/null -w "%{http_code}" http://localhost:10010/overlay/
 ```
 
 ### 第四步：验证本次部署的新功能
@@ -53,9 +53,6 @@ curl -sf http://localhost:10010/.env && echo "⚠️ 安全问题：.env 文件�
 
 # 确认 config.yaml 不可访问
 curl -sf http://localhost:10010/config.yaml && echo "⚠️ 安全问题：config.yaml 可被公开访问！" || echo "✅ config.yaml 不可访问"
-
-# 确认 .env 不可通过 nginx admin 访问
-curl -sf http://localhost:10020/.env && echo "⚠️ 安全问题：.env 通过 admin nginx 可访问！" || echo "✅ admin nginx .env 不可访问"
 ```
 
 ### 第六步：做出判断
