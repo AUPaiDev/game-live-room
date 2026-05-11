@@ -55,13 +55,27 @@ func main() {
 
 	go h.Run(ctx)
 
+	// Prefer DB cookie over config cookie at startup.
+	startCookie := cfg.Bilibili.Cookie
+	if dbCookie, err := st.GetActiveCookie(); err == nil && dbCookie != nil {
+		startCookie = bilibili.BuildCookieHeader(dbCookie)
+		logger.Info("using DB cookie for danmaku", zap.String("uname", dbCookie.Label))
+	}
+
 	danmakuClient := bilibili.NewDanmakuClient(
 		cfg.Bilibili.RoomID,
-		cfg.Bilibili.Cookie,
+		startCookie,
 		cfg.Bilibili.UserAgent,
 		cfg.Bilibili.DanmakuWSURL,
 		logger,
 	)
+	// Dynamically pick up newly saved cookies on reconnect.
+	danmakuClient.SetCookieFunc(func() string {
+		if c, err := st.GetActiveCookie(); err == nil && c != nil {
+			return bilibili.BuildCookieHeader(c)
+		}
+		return ""
+	})
 	danmakuClient.OnDanmaku = func(msg bilibili.LiveMessage) {
 		engine.HandleLiveMessage(msg)
 	}
@@ -69,7 +83,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
-		Handler: buildRouter(h, engine, st, logger),
+		Handler: buildRouter(h, engine, st, logger, cfg.Bilibili.UserAgent),
 	}
 
 	go func() {
@@ -93,7 +107,7 @@ func main() {
 	}
 }
 
-func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, logger *zap.Logger) http.Handler {
+func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, logger *zap.Logger, userAgent string) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.Handle("/ws", h)
@@ -109,6 +123,12 @@ func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, logger *zap.L
 	mux.HandleFunc("/api/vote/scores", handleVoteScores(engine, st))
 	mux.HandleFunc("/api/vote/reset", handleVoteReset(engine))
 	mux.HandleFunc("/api/events", handleEvents(st))
+
+	// Auth: B站 QR code login
+	mux.HandleFunc("/api/auth/qrcode/generate", handleQRCodeGenerate(userAgent))
+	mux.HandleFunc("/api/auth/qrcode/poll", handleQRCodePoll(st, userAgent))
+	mux.HandleFunc("/api/auth/cookies", handleCookies(st))
+	mux.HandleFunc("/api/auth/cookies/", handleCookieDelete(st))
 
 	return mux
 }
@@ -292,4 +312,76 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 
 func errResp(err error) map[string]string {
 	return map[string]string{"error": err.Error()}
+}
+
+func handleQRCodeGenerate(userAgent string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, err := bilibili.GenerateQRCode(userAgent)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, errResp(err))
+			return
+		}
+		writeJSON(w, http.StatusOK, data)
+	}
+}
+
+func handleQRCodePoll(st *store.Store, userAgent string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Query().Get("qrcode_key")
+		if key == "" {
+			writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("missing qrcode_key")))
+			return
+		}
+		result, err := bilibili.PollQRCode(key, userAgent)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, errResp(err))
+			return
+		}
+		// On success, verify and persist the cookie.
+		if result.Status == 0 && result.SESSDATA != "" {
+			info, err := bilibili.VerifyCookie(result.SESSDATA, result.BiliJCT, result.DedeUserID, userAgent)
+			if err == nil && info.IsValid {
+				c := &model.BiliCookie{
+					Label:      info.Uname,
+					SESSDATA:   result.SESSDATA,
+					BiliJCT:    result.BiliJCT,
+					DedeUserID: result.DedeUserID,
+					Face:       info.Face,
+				}
+				_ = st.SaveCookie(c)
+			}
+		}
+		writeJSON(w, http.StatusOK, result)
+	}
+}
+
+func handleCookies(st *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookies, err := st.ListCookies()
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, errResp(err))
+			return
+		}
+		writeJSON(w, http.StatusOK, cookies)
+	}
+}
+
+func handleCookieDelete(st *store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		idStr := r.URL.Path[len("/api/auth/cookies/"):]
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("invalid id")))
+			return
+		}
+		if err := st.DeleteCookie(id); err != nil {
+			writeJSON(w, http.StatusInternalServerError, errResp(err))
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
 }

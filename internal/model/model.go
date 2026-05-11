@@ -60,3 +60,19 @@ type VoteSession struct {
 	StartedAt time.Time
 	EndedAt   *time.Time
 }
+
+// BiliCookie stores B站 login credentials for danmaku connection.
+type BiliCookie struct {
+	ID          uint64    `gorm:"primaryKey;autoIncrement"`
+	Label       string    `gorm:"size:64;not null"`
+	SESSDATA    string    `gorm:"size:512;not null"`
+	BiliJCT     string    `gorm:"size:256;not null"`
+	DedeUserID  string    `gorm:"size:64;not null"`
+	Buvid3     string    `gorm:"size:128"`
+	Face       string    `gorm:"size:512"`
+	IsActive   bool      `gorm:"default:true"`
+	IsValid   bool      `gorm:"default:true"`
+	LastCheck  *time.Time
+	CreatedAt  time.Time
+	UpdatedAt time.Time
+}

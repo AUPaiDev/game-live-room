@@ -31,14 +31,14 @@ docker compose logs --tail=50 server
 ### 第三步：验证 HTTP 端点
 
 ```bash
-# 健康检查
-curl -sf http://localhost:8080/health
+# 健康检查（注意：路径是 /api/health，不是 /health）
+curl -sf http://localhost:10010/api/health
 
-# admin 页面可访问
-curl -sf -o /dev/null -w "%{http_code}" http://localhost:8080/admin/
+# admin 页面可访问（通过 nginx，端口 10020）
+curl -sf -o /dev/null -w "%{http_code}" http://localhost:10020/
 
-# overlay 页面可访问
-curl -sf -o /dev/null -w "%{http_code}" http://localhost:8080/overlay/
+# overlay 页面可访问（通过 nginx，端口 10021）
+curl -sf -o /dev/null -w "%{http_code}" http://localhost:10021/
 ```
 
 ### 第四步：验证本次部署的新功能
@@ -48,11 +48,14 @@ curl -sf -o /dev/null -w "%{http_code}" http://localhost:8080/overlay/
 ### 第五步：安全检查
 
 ```bash
-# 确认 .env 文件不在 web 静态目录下
-curl -sf http://localhost:8080/.env && echo "⚠️ 安全问题：.env 文件可被公开访问！" || echo "✅ .env 不可访问"
+# 确认 .env 文件不可通过 Go server 直连访问
+curl -sf http://localhost:10010/.env && echo "⚠️ 安全问题：.env 文件可被公开访问！" || echo "✅ .env 不可访问"
 
 # 确认 config.yaml 不可访问
-curl -sf http://localhost:8080/config.yaml && echo "⚠️ 安全问题：config.yaml 可被公开访问！" || echo "✅ config.yaml 不可访问"
+curl -sf http://localhost:10010/config.yaml && echo "⚠️ 安全问题：config.yaml 可被公开访问！" || echo "✅ config.yaml 不可访问"
+
+# 确认 .env 不可通过 nginx admin 访问
+curl -sf http://localhost:10020/.env && echo "⚠️ 安全问题：.env 通过 admin nginx 可访问！" || echo "✅ admin nginx .env 不可访问"
 ```
 
 ### 第六步：做出判断

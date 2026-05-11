@@ -26,6 +26,7 @@ func (s *Store) AutoMigrate() error {
 		&model.QuizSession{},
 		&model.VoteRecord{},
 		&model.VoteSession{},
+		&model.BiliCookie{},
 	)
 }
 
@@ -157,6 +158,55 @@ func (s *Store) CreateVoteSession(sess *model.VoteSession) error {
 func (s *Store) UpdateVoteSession(sess *model.VoteSession) error {
 	if err := s.db.Save(sess).Error; err != nil {
 		return fmt.Errorf("update vote session: %w", err)
+	}
+	return nil
+}
+
+
+// GetActiveCookie returns the active B站 cookie, or nil if none.
+func (s *Store) GetActiveCookie() (*model.BiliCookie, error) {
+	var c model.BiliCookie
+	err := s.db.Where("is_active = ? AND is_valid = ?", true, true).
+		Order("id DESC").First(&c).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get active cookie: %w", err)
+	}
+	return &c, nil
+}
+
+// SaveCookie inserts a new cookie and deactivates all previous ones.
+func (s *Store) SaveCookie(c *model.BiliCookie) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.BiliCookie{}).
+			Where("is_active = ?", true).
+			Update("is_active", false).Error; err != nil {
+			return fmt.Errorf("deactivate old cookies: %w", err)
+		}
+		c.IsActive = true
+		c.IsValid = true
+		if err := tx.Create(c).Error; err != nil {
+			return fmt.Errorf("save cookie: %w", err)
+		}
+		return nil
+	})
+}
+
+// ListCookies returns all stored cookies ordered by newest first.
+func (s *Store) ListCookies() ([]model.BiliCookie, error) {
+	var cookies []model.BiliCookie
+	if err := s.db.Order("id DESC").Find(&cookies).Error; err != nil {
+		return nil, fmt.Errorf("list cookies: %w", err)
+	}
+	return cookies, nil
+}
+
+// DeleteCookie removes a cookie by ID.
+func (s *Store) DeleteCookie(id uint64) error {
+	if err := s.db.Delete(&model.BiliCookie{}, id).Error; err != nil {
+		return fmt.Errorf("delete cookie %d: %w", id, err)
 	}
 	return nil
 }

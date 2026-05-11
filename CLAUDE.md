@@ -242,4 +242,7 @@ docker exec -it game_live_room_mysql mysql -u root -p game_live_room --default-c
 | admin/overlay 页面 404 | nginx 反代路径末尾斜杠敏感：`proxy_pass http://server:8080/admin/` 必须带尾斜杠 |
 | WebSocket 连接失败（nginx 后） | nginx conf 必须设置 `Upgrade` 和 `Connection` header，见 nginx/admin.conf |
 | 容器启动顺序问题 | server 依赖 mysql healthcheck，mysql 未就绪时 server 会等待，正常现象 |
+| hub 广播时 map 写操作在 RLock 下 | `hub.go` Run() 的 broadcast case 在 `clientsMu.RLock()` 下调用 `delete(h.clients, c)`，这是写操作，会触发 data race。需要 coder 改为先收集要删除的 client，RUnlock 后再加写锁删除，或改用 `sync.Map` |
+| engine.activeGame 并发读写 | `Engine.activeGame` 字段在 `HandleLiveMessage`（弹幕 goroutine）和 `HandleAdminCmd`（HTTP handler goroutine）中并发读写，没有 mutex 保护，是 data race。需要 coder 加 `sync.RWMutex` |
+| hub readPump 丢弃所有入站消息 | `client.readPump()` 只读消息不处理（`_, _, err := c.conn.ReadMessage()`）。admin 通过 HTTP API 发命令，WebSocket 仅用于服务端推送，这是设计决策。但 coder.md 的 WS 消息格式里写了 `client → server` 的 cmd 格式，与实现不符，会误导前端开发。需要 coder 更新 WS 消息规范或实现 readPump 的命令处理 |
 | （待补充） | — |

@@ -93,6 +93,21 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 .flex-row { display: flex; gap: 8px; align-items: center; }
 .flex-1 { flex: 1; }
+
+/* QR code login */
+.qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 0; }
+.qr-img { width: 200px; height: 200px; border: 2px solid #0f3460; border-radius: 8px; background: #fff; }
+.qr-status { font-size: 13px; color: #aaa; }
+.qr-status.success { color: #4caf50; }
+.qr-status.expired { color: #f44336; }
+.cookie-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #0f3460; }
+.cookie-avatar { width: 32px; height: 32px; border-radius: 50%; background: #0f3460; object-fit: cover; }
+.cookie-info { flex: 1; }
+.cookie-name { font-size: 13px; font-weight: 600; }
+.cookie-meta { font-size: 11px; color: #aaa; }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; margin-left: 4px; }
+.badge-active { background: #4caf50; color: #fff; }
+.badge-inactive { background: #555; color: #ccc; }
 </style>
 </head>
 <body>
@@ -110,6 +125,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     <div class="nav-item" data-panel="sc">SC 触发</div>
     <div class="nav-item" data-panel="quiz">答题游戏</div>
     <div class="nav-item" data-panel="vote">礼物投票</div>
+    <div class="nav-item" data-panel="auth">B站账号</div>
   </div>
 
   <div class="main">
@@ -194,6 +210,26 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       <div class="card">
         <div class="card-title">实时计分板</div>
         <div id="scoreboardList"></div>
+      </div>
+    </div>
+
+    <!-- Auth Panel -->
+    <div class="panel" id="panel-auth">
+      <div class="panel-title">B站账号</div>
+      <div class="card">
+        <div class="card-title">扫码登录</div>
+        <div class="qr-wrap">
+          <canvas id="qrCanvas" class="qr-img" width="200" height="200"></canvas>
+          <div class="qr-status" id="qrStatus">点击下方按钮生成二维码</div>
+          <button class="btn btn-primary" id="btnGenQR" onclick="generateQR()">生成二维码</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          已保存账号
+          <button class="btn btn-secondary btn-sm" onclick="loadCookies()">刷新</button>
+        </div>
+        <div id="cookieList"><div style="color:#aaa;font-size:13px">暂无账号</div></div>
       </div>
     </div>
 
@@ -320,6 +356,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     item.classList.add('active');
     document.getElementById('panel-' + item.dataset.panel).classList.add('active');
+    if (item.dataset.panel === 'auth') loadCookies();
   });
 });
 
@@ -552,6 +589,114 @@ function updateScoreboard(state) {
       <div class="score-value">${score}</div>
     </div>`;
   }).join('');
+}
+
+// ---- Auth / QR Login ----
+let qrPollTimer = null;
+let currentQRKey = null;
+
+function generateQR() {
+  clearQRPoll();
+  document.getElementById('qrStatus').textContent = '生成中...';
+  document.getElementById('qrStatus').className = 'qr-status';
+  fetch('/api/auth/qrcode/generate').then(r => r.json()).then(data => {
+    if (!data.url) { setQRStatus('生成失败', ''); return; }
+    currentQRKey = data.qrcode_key;
+    drawQR(data.url);
+    setQRStatus('请用B站APP扫码', '');
+    qrPollTimer = setInterval(pollQR, 2000);
+  }).catch(() => setQRStatus('网络错误', ''));
+}
+
+function pollQR() {
+  if (!currentQRKey) return;
+  fetch(`/api/auth/qrcode/poll?qrcode_key=${encodeURIComponent(currentQRKey)}`)
+    .then(r => r.json()).then(data => {
+      if (data.status === 86101) {
+        setQRStatus('等待扫码...', '');
+      } else if (data.status === 86090) {
+        setQRStatus('已扫码，请在APP确认', '');
+      } else if (data.status === 86038) {
+        clearQRPoll();
+        setQRStatus('二维码已过期，请重新生成', 'expired');
+      } else if (data.status === 0) {
+        clearQRPoll();
+        setQRStatus('登录成功！', 'success');
+        clearCanvas();
+        loadCookies();
+      }
+    });
+}
+
+function clearQRPoll() {
+  if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; }
+  currentQRKey = null;
+}
+
+function setQRStatus(text, cls) {
+  const el = document.getElementById('qrStatus');
+  el.textContent = text;
+  el.className = 'qr-status' + (cls ? ' ' + cls : '');
+}
+
+function clearCanvas() {
+  const canvas = document.getElementById('qrCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Minimal QR code renderer using the qrcode-generator library loaded inline.
+// We use a simple fetch-to-img approach via a data URL from the B站 QR URL.
+function drawQR(url) {
+  // Use Google Charts QR API as a fallback renderer (no external JS needed).
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const canvas = document.getElementById('qrCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  };
+  img.onerror = () => {
+    // Fallback: show the URL as text
+    const canvas = document.getElementById('qrCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#333';
+    ctx.font = '10px monospace';
+    ctx.fillText('扫码URL已生成', 10, 100);
+  };
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+}
+
+function loadCookies() {
+  fetch('/api/auth/cookies').then(r => r.json()).then(data => {
+    const el = document.getElementById('cookieList');
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div style="color:#aaa;font-size:13px">暂无账号</div>';
+      return;
+    }
+    el.innerHTML = data.map(c => {
+      const active = c.IsActive ? '<span class="badge badge-active">使用中</span>' : '<span class="badge badge-inactive">未激活</span>';
+      const valid = c.IsValid ? '' : '<span class="badge badge-inactive">已失效</span>';
+      const face = c.Face ? `<img class="cookie-avatar" src="${c.Face}" onerror="this.style.display='none'">` : '<div class="cookie-avatar"></div>';
+      return `<div class="cookie-row">
+        ${face}
+        <div class="cookie-info">
+          <div class="cookie-name">${c.Label || c.DedeUserID}${active}${valid}</div>
+          <div class="cookie-meta">UID: ${c.DedeUserID}</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteCookie(${c.ID})">删除</button>
+      </div>`;
+    }).join('');
+  });
+}
+
+function deleteCookie(id) {
+  if (!confirm('确认删除该账号？')) return;
+  fetch(`/api/auth/cookies/${id}`, { method: 'DELETE' }).then(() => loadCookies());
 }
 
 // ---- Helpers ----

@@ -39,6 +39,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch
 | 游戏切换延迟高 | Hub 广播耗时；overlay JS 处理耗时；网络延迟 |
 | MySQL 连接失败 | Docker 容器状态；DSN 配置；字符集（utf8mb4） |
 | WSL 网络问题 | WSL2 端口转发；Docker Desktop 网络模式 |
+| 偶发 panic / 竞态崩溃 | 已知 data race：hub.go broadcast case 在 RLock 下 delete map；engine.activeGame 无 mutex。用 `go test -race` 或 `go run -race` 复现 |
 
 ## 安全排查注意事项
 

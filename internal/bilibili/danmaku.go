@@ -44,11 +44,12 @@ const headerSize = 16
 
 // DanmakuClient connects to B站 live danmaku WebSocket.
 type DanmakuClient struct {
-	roomID    uint64
-	cookie    string
-	userAgent string
-	wsURL     string
-	logger    *zap.Logger
+	roomID     uint64
+	cookie     string
+	userAgent  string
+	wsURL      string
+	logger     *zap.Logger
+	cookieFunc func() string // optional: returns current cookie from DB
 
 	OnDanmaku func(msg LiveMessage)
 }
@@ -62,6 +63,22 @@ func NewDanmakuClient(roomID uint64, cookie, userAgent, wsURL string, logger *za
 		wsURL:     wsURL,
 		logger:    logger,
 	}
+}
+
+// SetCookieFunc sets a function that returns the current active cookie.
+// When set, it is called before each reconnect to pick up newly saved cookies.
+func (c *DanmakuClient) SetCookieFunc(fn func() string) {
+	c.cookieFunc = fn
+}
+
+// activeCookie returns the current cookie, preferring the dynamic source.
+func (c *DanmakuClient) activeCookie() string {
+	if c.cookieFunc != nil {
+		if cookie := c.cookieFunc(); cookie != "" {
+			return cookie
+		}
+	}
+	return c.cookie
 }
 
 // Connect starts the danmaku client with exponential backoff reconnection.
@@ -87,7 +104,7 @@ func (c *DanmakuClient) Connect(ctx context.Context) {
 		}
 
 		// Refresh token before reconnecting.
-		token, host, err := GetDanmuInfo(c.roomID, c.cookie, c.userAgent)
+		token, host, err := GetDanmuInfo(c.roomID, c.activeCookie(), c.userAgent)
 		if err != nil {
 			c.logger.Warn("refresh danmu info failed", zap.Error(err))
 		} else if host != "" {
@@ -98,7 +115,8 @@ func (c *DanmakuClient) Connect(ctx context.Context) {
 }
 
 func (c *DanmakuClient) connect(ctx context.Context) error {
-	token, _, err := GetDanmuInfo(c.roomID, c.cookie, c.userAgent)
+	cookie := c.activeCookie()
+	token, _, err := GetDanmuInfo(c.roomID, cookie, c.userAgent)
 	if err != nil {
 		c.logger.Warn("get danmu info failed, connecting without token", zap.Error(err))
 	}
@@ -106,7 +124,7 @@ func (c *DanmakuClient) connect(ctx context.Context) error {
 	dialer := websocket.DefaultDialer
 	header := map[string][]string{
 		"User-Agent": {c.userAgent},
-		"Cookie":     {c.cookie},
+		"Cookie":     {cookie},
 	}
 	conn, _, err := dialer.DialContext(ctx, c.wsURL, header)
 	if err != nil {
@@ -114,7 +132,7 @@ func (c *DanmakuClient) connect(ctx context.Context) error {
 	}
 	defer conn.Close()
 
-	uid := ExtractUID(c.cookie)
+	uid := ExtractUID(cookie)
 	if err := c.sendAuth(conn, uid, token); err != nil {
 		return fmt.Errorf("send auth: %w", err)
 	}
