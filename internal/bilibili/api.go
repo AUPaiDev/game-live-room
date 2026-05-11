@@ -14,6 +14,7 @@ const (
 	qrcodeGenerateURL = "https://passport.bilibili.com/x/passport-login/web/qrcode/generate"
 	qrcodePollURL     = "https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key=%s"
 	navURL            = "https://api.bilibili.com/x/web-interface/nav"
+	fingerURL         = "https://api.bilibili.com/x/frontend/finger/spi"
 )
 
 type danmuInfoResp struct {
@@ -31,6 +32,15 @@ type danmuInfoResp struct {
 // GetDanmuInfo fetches the danmaku WebSocket token and host for a room.
 // It uses the provided cookie for authentication.
 func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string, host string, err error) {
+	// Append buvid3 fingerprint to bypass B站 risk control on server IPs.
+	if buvid3 := fetchBuvid3(userAgent); buvid3 != "" && !strings.Contains(cookie, "buvid3=") {
+		if cookie != "" {
+			cookie = cookie + "; buvid3=" + buvid3
+		} else {
+			cookie = "buvid3=" + buvid3
+		}
+	}
+
 	reqURL := fmt.Sprintf(danmuInfoURL, roomID)
 	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
@@ -65,6 +75,36 @@ func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string,
 		host = fmt.Sprintf("wss://%s/sub", h.Host)
 	}
 	return info.Data.Token, host, nil
+}
+
+// fetchBuvid3 fetches a browser fingerprint from B站 to bypass risk control on server IPs.
+// Returns empty string on any failure; callers should proceed without it.
+func fetchBuvid3(userAgent string) string {
+	req, err := http.NewRequest(http.MethodGet, fingerURL, nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Referer", "https://www.bilibili.com/")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ""
+	}
+	var result struct {
+		Code int `json:"code"`
+		Data struct {
+			B3 string `json:"b_3"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil || result.Code != 0 {
+		return ""
+	}
+	return result.Data.B3
 }
 
 // ExtractUID parses the DedeUserID field from a B站 cookie string.

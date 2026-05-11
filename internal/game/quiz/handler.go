@@ -135,7 +135,9 @@ func (h *Handler) endRound() {
 
 func (h *Handler) broadcastQuestion() {
 	var options []string
-	json.Unmarshal([]byte(h.currentQ.Options), &options)
+	if err := json.Unmarshal([]byte(h.currentQ.Options), &options); err != nil || options == nil {
+		options = []string{}
+	}
 
 	payload, _ := json.Marshal(map[string]interface{}{
 		"id":       h.currentQ.ID,
@@ -169,7 +171,9 @@ func (h *Handler) broadcastResult() {
 	}
 
 	var options []string
-	json.Unmarshal([]byte(h.currentQ.Options), &options)
+	if err := json.Unmarshal([]byte(h.currentQ.Options), &options); err != nil || options == nil {
+		options = []string{}
+	}
 
 	payload, _ := json.Marshal(map[string]interface{}{
 		"question":      h.currentQ.Question,

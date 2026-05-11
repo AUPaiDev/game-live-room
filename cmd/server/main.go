@@ -287,10 +287,14 @@ func handleVoteReset(engine *game.Engine) http.HandlerFunc {
 
 func handleEvents(st *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		const maxLimit = 500
 		limitStr := r.URL.Query().Get("limit")
 		limit := 100
 		if limitStr != "" {
 			if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+				if l > maxLimit {
+					l = maxLimit
+				}
 				limit = l
 			}
 		}

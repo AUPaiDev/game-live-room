@@ -1,10 +1,12 @@
 package game
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
-	"time"
-
+	"math"
 	"sync"
+	"time"
 
 	"game-live-room/internal/bilibili"
 	"game-live-room/internal/config"
@@ -109,6 +111,9 @@ func (e *Engine) startQuiz(params map[string]interface{}) error {
 	var questionID uint64
 	switch v := idVal.(type) {
 	case float64:
+		if v < 0 || v > float64(math.MaxUint64) || v != math.Trunc(v) {
+			return fmt.Errorf("invalid question_id value")
+		}
 		questionID = uint64(v)
 	case uint64:
 		questionID = v
@@ -125,13 +130,21 @@ func (e *Engine) startQuiz(params map[string]interface{}) error {
 func (e *Engine) startVote(params map[string]interface{}) error {
 	sessionID, _ := params["session_id"].(string)
 	if sessionID == "" {
-		sessionID = fmt.Sprintf("vote_%d", time.Now().Unix())
+		sessionID = randomSessionID("vote_")
 	}
 	if err := e.vote.Start(sessionID); err != nil {
 		return err
 	}
 	e.setActiveGame("vote")
 	return nil
+}
+
+func randomSessionID(prefix string) string {
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("%s%d", prefix, time.Now().UnixNano())
+	}
+	return prefix + hex.EncodeToString(b)
 }
 
 // ActiveGame returns the name of the currently active game.

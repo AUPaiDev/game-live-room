@@ -80,6 +80,7 @@ WebSocket **仅用于服务端推送**，admin 的控制指令走 HTTP REST API�
 3. `.env.example` 已同步更新（如有新配置项）
 4. overlay 页面在 OBS 浏览器源中背景透明（可用 `background: red` 临时测试后还原）
 5. 回复时只讲改了什么、做了哪些校验，不复述代码
+6. **完成后通知主 agent 触发 devops 部署**（devops 会在部署成功后自动启动 tester）
 
 ## 边界
 

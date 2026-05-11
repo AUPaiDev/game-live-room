@@ -133,6 +133,9 @@ func (c *DanmakuClient) connect(ctx context.Context) error {
 	defer conn.Close()
 
 	uid := ExtractUID(cookie)
+	if token == "" {
+		uid = 0 // anonymous connection when no token available
+	}
 	if err := c.sendAuth(conn, uid, token); err != nil {
 		return fmt.Errorf("send auth: %w", err)
 	}

@@ -297,6 +297,16 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 </div>
 
 <script>
+// ---- HTML Escape ----
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ---- WebSocket ----
 let ws = null;
 let wsReconnectTimer = null;
@@ -368,7 +378,7 @@ function appendEvent(payload) {
   const cmd = payload.cmd || payload.Cmd || '';
   const user = payload.username || payload.Username || '';
   const text = payload.text || payload.Text || payload.gift_name || payload.GiftName || '';
-  item.innerHTML = `<span class="cmd">${cmd}</span><span class="user">${user}</span>${text}`;
+  item.innerHTML = `<span class="cmd">${escHtml(cmd)}</span><span class="user">${escHtml(user)}</span>${escHtml(text)}`;
   feed.insertBefore(item, feed.firstChild);
   if (feed.children.length > 100) feed.removeChild(feed.lastChild);
 }
@@ -384,9 +394,9 @@ function renderSCList() {
   if (scItems.length === 0) { el.textContent = '暂无数据'; return; }
   el.innerHTML = scItems.slice(0, 10).map(s =>
     `<div style="padding:6px 0;border-bottom:1px solid #0f3460">
-      <span style="color:#e94560;font-weight:600">¥${s.price || s.Price}</span>
-      <span style="color:#4fc3f7;margin:0 8px">${s.username || s.Username}</span>
-      <span>${s.text || s.Text}</span>
+      <span style="color:#e94560;font-weight:600">¥${escHtml(s.price || s.Price)}</span>
+      <span style="color:#4fc3f7;margin:0 8px">${escHtml(s.username || s.Username)}</span>
+      <span>${escHtml(s.text || s.Text)}</span>
     </div>`
   ).join('');
 }
@@ -396,7 +406,7 @@ const giftRules = [];
 function renderGiftRules() {
   const tbody = document.getElementById('giftRulesBody');
   tbody.innerHTML = giftRules.map((r, i) =>
-    `<tr><td>${r.gift_name}</td><td>${r.action}</td>
+    `<tr><td>${escHtml(r.gift_name)}</td><td>${escHtml(r.action)}</td>
      <td><button class="btn btn-danger btn-sm" onclick="removeGiftRule(${i})">删除</button></td></tr>`
   ).join('');
 }
@@ -435,16 +445,18 @@ function loadQuestions() {
 function renderQuestionList() {
   const tbody = document.getElementById('questionListBody');
   tbody.innerHTML = (questions || []).map(q => {
-    const typeTag = `<span class="tag tag-${q.Type || q.type}">${q.Type || q.type}</span>`;
-    const text = (q.Question || q.question || '').substring(0, 30);
+    const qType = escHtml(q.Type || q.type);
+    const typeTag = `<span class="tag tag-${qType}">${qType}</span>`;
+    const text = escHtml((q.Question || q.question || '').substring(0, 30));
+    const id = q.ID || q.id;
     return `<tr>
-      <td>${q.ID || q.id}</td>
+      <td>${id}</td>
       <td>${typeTag}</td>
-      <td>${text}${text.length >= 30 ? '...' : ''}</td>
+      <td>${text}${(q.Question || q.question || '').length >= 30 ? '...' : ''}</td>
       <td>
-        <button class="btn btn-secondary btn-sm" onclick="openQuestionModal(${q.ID || q.id})">编辑</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteQuestion(${q.ID || q.id})">删除</button>
-        <button class="btn btn-primary btn-sm" onclick="startQuizWith(${q.ID || q.id})">出题</button>
+        <button class="btn btn-secondary btn-sm" onclick="openQuestionModal(${id})">编辑</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteQuestion(${id})">删除</button>
+        <button class="btn btn-primary btn-sm" onclick="startQuizWith(${id})">出题</button>
       </td>
     </tr>`;
   }).join('');
@@ -452,7 +464,7 @@ function renderQuestionList() {
 function renderQuizSelect() {
   const sel = document.getElementById('quizQuestionSelect');
   sel.innerHTML = (questions || []).map(q =>
-    `<option value="${q.ID || q.id}">[${q.Type || q.type}] ${(q.Question || q.question || '').substring(0, 40)}</option>`
+    `<option value="${q.ID || q.id}">[${escHtml(q.Type || q.type)}] ${escHtml((q.Question || q.question || '').substring(0, 40))}</option>`
   ).join('');
 }
 function openStartQuizModal() {
@@ -584,7 +596,7 @@ function updateScoreboard(state) {
     const score = scores[slot.id] || 0;
     const pct = Math.round((score / maxScore) * 100);
     return `<div class="score-row">
-      <div class="score-name">${slot.name}<br><small style="color:#aaa">${slot.gift_name}</small></div>
+      <div class="score-name">${escHtml(slot.name)}<br><small style="color:#aaa">${escHtml(slot.gift_name)}</small></div>
       <div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%"></div></div>
       <div class="score-value">${score}</div>
     </div>`;
@@ -681,12 +693,12 @@ function loadCookies() {
     el.innerHTML = data.map(c => {
       const active = c.IsActive ? '<span class="badge badge-active">使用中</span>' : '<span class="badge badge-inactive">未激活</span>';
       const valid = c.IsValid ? '' : '<span class="badge badge-inactive">已失效</span>';
-      const face = c.Face ? `<img class="cookie-avatar" src="${c.Face}" onerror="this.style.display='none'">` : '<div class="cookie-avatar"></div>';
+      const face = c.Face ? `<img class="cookie-avatar" src="${escHtml(c.Face)}" onerror="this.style.display='none'">` : '<div class="cookie-avatar"></div>';
       return `<div class="cookie-row">
         ${face}
         <div class="cookie-info">
-          <div class="cookie-name">${c.Label || c.DedeUserID}${active}${valid}</div>
-          <div class="cookie-meta">UID: ${c.DedeUserID}</div>
+          <div class="cookie-name">${escHtml(c.Label || c.DedeUserID)}${active}${valid}</div>
+          <div class="cookie-meta">UID: ${escHtml(c.DedeUserID)}</div>
         </div>
         <button class="btn btn-danger btn-sm" onclick="deleteCookie(${c.ID})">删除</button>
       </div>`;
