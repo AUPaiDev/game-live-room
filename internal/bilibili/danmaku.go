@@ -50,10 +50,17 @@ type DanmakuClient struct {
 	userAgent     string
 	wsURL         string
 	cachedToken   string // token from last successful GetDanmuInfo, reused on reconnect
+	manualToken   string // manually-set token, used when getDanmuInfo is blocked (-352)
 	logger        *zap.Logger
 	cookieFunc    func() string // optional: returns current cookie from DB
 
 	OnDanmaku func(msg LiveMessage)
+}
+
+// SetManualToken sets a danmaku token obtained externally (e.g. from browser).
+// Used when the server IP is blocked from calling getDanmuInfo directly.
+func (c *DanmakuClient) SetManualToken(token string) {
+	c.manualToken = token
 }
 
 // NewDanmakuClient creates a new DanmakuClient.
@@ -141,9 +148,15 @@ func (c *DanmakuClient) connect(ctx context.Context) error {
 		var err error
 		token, _, buvid3Injected, err = GetDanmuInfo(c.roomID, cookie, c.userAgent)
 		if err != nil {
-			c.logger.Warn("get danmu info failed, connecting without token", zap.Error(err))
+			if c.manualToken != "" {
+				// getDanmuInfo blocked (e.g. server IP flagged); fall back to manually-set token.
+				token = c.manualToken
+				c.logger.Info("danmu info blocked, using manual token", zap.Error(err))
+			} else {
+				c.logger.Warn("get danmu info failed, connecting without token", zap.Error(err))
+			}
 		}
-		c.logger.Info("danmu info fetched", zap.Bool("buvid3_injected", buvid3Injected), zap.Bool("has_token", token != ""))
+		c.logger.Info("danmu info fetched", zap.Bool("buvid3_injected", buvid3Injected), zap.Bool("has_token", token != ""), zap.Bool("manual_token", token == c.manualToken && c.manualToken != ""))
 	}
 
 	dialer := websocket.DefaultDialer

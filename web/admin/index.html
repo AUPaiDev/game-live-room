@@ -705,6 +705,19 @@ body::before {
       <div class="mt-8 mono text-dim" style="font-size:10px;text-align:center" id="qrStatus">—</div>
     </div>
   </div>
+  <div class="section-gap">
+    <div class="card">
+      <div class="card-title">弹幕 Token（手动）</div>
+      <div class="text-dim" style="font-size:12px;margin-bottom:12px;line-height:1.6">
+        服务器 IP 被 B站 风控时，getDanmuInfo 返回 -352，无法自动获取 token。<br>
+        解决方法：在浏览器打开直播间，F12 → Network → 搜索 <span class="mono" style="color:var(--cyan)">getDanmuInfo</span>，复制响应中的 <span class="mono" style="color:var(--cyan)">token</span> 字段粘贴到此处。
+      </div>
+      <div class="flex-row" style="gap:8px">
+        <input class="form-input" id="manualDanmakuToken" placeholder="粘贴 token..." style="flex:1;font-family:monospace;font-size:12px">
+        <button class="btn btn-cyan btn-sm" onclick="setDanmakuToken()">SET</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 </div><!-- end #main -->
@@ -1104,6 +1117,18 @@ async function deleteCookie(id) {
   if (!confirm('Delete this account?')) return;
   const r = await apiFetch(`/api/auth/cookies/${id}`, {method: 'DELETE'});
   if (r.ok) { showToast('DELETED'); loadCookies(); }
+  else showToast('FAILED: ' + r.status, true);
+}
+
+async function setDanmakuToken() {
+  const token = document.getElementById('manualDanmakuToken').value.trim();
+  if (!token) { showToast('TOKEN EMPTY', true); return; }
+  const r = await apiFetch('/api/auth/danmaku-token', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({token})
+  });
+  if (r.ok) { showToast('TOKEN SET — reconnecting next cycle'); document.getElementById('manualDanmakuToken').value = ''; }
   else showToast('FAILED: ' + r.status, true);
 }
 

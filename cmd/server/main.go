@@ -84,7 +84,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
-		Handler: buildRouter(h, engine, st, logger, cfg.Bilibili.UserAgent, cfg.Server.AdminToken),
+		Handler: buildRouter(h, engine, st, danmakuClient, logger, cfg.Bilibili.UserAgent, cfg.Server.AdminToken),
 	}
 
 	go func() {
@@ -108,7 +108,7 @@ func main() {
 	}
 }
 
-func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, logger *zap.Logger, userAgent string, adminToken string) http.Handler {
+func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, dc *bilibili.DanmakuClient, logger *zap.Logger, userAgent string, adminToken string) http.Handler {
 	mux := http.NewServeMux()
 
 	// /ws: overlay connections are unauthenticated; admin connections require token.
@@ -148,6 +148,8 @@ func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, logger *zap.L
 	apiMux.HandleFunc("/api/events", handleEvents(st))
 	apiMux.HandleFunc("/api/gift/trigger", handleGiftTrigger(engine))
 	apiMux.HandleFunc("/api/sc/config", handleSCConfig(engine))
+
+	apiMux.HandleFunc("/api/auth/danmaku-token", handleDanmakuToken(dc))
 
 	// Auth: B站 QR code login
 	apiMux.HandleFunc("/api/auth/qr/generate", handleQRCodeGenerate(userAgent))
@@ -520,6 +522,31 @@ func handleCookieOp(st *store.Store) http.HandlerFunc {
 			writeJSON(w, http.StatusInternalServerError, errResp(err))
 			return
 		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
+}
+
+// handleDanmakuToken accepts a manually-provided danmaku token.
+// Used when the server IP is blocked from calling getDanmuInfo (-352).
+// The token can be obtained from the browser's network tab when visiting the live room.
+func handleDanmakuToken(dc *bilibili.DanmakuClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			Token string `json:"token"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(err))
+			return
+		}
+		if body.Token == "" {
+			writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("missing token")))
+			return
+		}
+		dc.SetManualToken(body.Token)
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
 }
