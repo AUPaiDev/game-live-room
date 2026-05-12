@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/andybalholm/brotli"
@@ -44,12 +45,13 @@ const headerSize = 16
 
 // DanmakuClient connects to B站 live danmaku WebSocket.
 type DanmakuClient struct {
-	roomID     uint64
-	cookie     string
-	userAgent  string
-	wsURL      string
-	logger     *zap.Logger
-	cookieFunc func() string // optional: returns current cookie from DB
+	roomID        uint64
+	cookie        string
+	userAgent     string
+	wsURL         string
+	cachedToken   string // token from last successful GetDanmuInfo, reused on reconnect
+	logger        *zap.Logger
+	cookieFunc    func() string // optional: returns current cookie from DB
 
 	OnDanmaku func(msg LiveMessage)
 }
@@ -107,20 +109,42 @@ func (c *DanmakuClient) Connect(ctx context.Context) {
 		token, host, _, err := GetDanmuInfo(c.roomID, c.activeCookie(), c.userAgent)
 		if err != nil {
 			c.logger.Warn("refresh danmu info failed", zap.Error(err))
-		} else if host != "" {
-			c.wsURL = host
-			_ = token // token used in auth below
+		} else {
+			if host != "" {
+				c.wsURL = host
+			}
+			c.cachedToken = token
 		}
 	}
 }
 
 func (c *DanmakuClient) connect(ctx context.Context) error {
 	cookie := c.activeCookie()
-	token, _, buvid3Injected, err := GetDanmuInfo(c.roomID, cookie, c.userAgent)
-	if err != nil {
-		c.logger.Warn("get danmu info failed, connecting without token", zap.Error(err))
+
+	var token string
+	var buvid3Injected bool
+
+	if c.cachedToken != "" {
+		// Use pre-fetched token from reconnect loop; still inject buvid3 if needed.
+		token = c.cachedToken
+		c.cachedToken = ""
+		if buvid3 := fetchBuvid3(c.userAgent); buvid3 != "" && !strings.Contains(cookie, "buvid3=") {
+			if cookie != "" {
+				cookie = cookie + "; buvid3=" + buvid3
+			} else {
+				cookie = "buvid3=" + buvid3
+			}
+			buvid3Injected = true
+		}
+		c.logger.Info("danmu info (cached)", zap.Bool("buvid3_injected", buvid3Injected), zap.Bool("has_token", token != ""))
+	} else {
+		var err error
+		token, _, buvid3Injected, err = GetDanmuInfo(c.roomID, cookie, c.userAgent)
+		if err != nil {
+			c.logger.Warn("get danmu info failed, connecting without token", zap.Error(err))
+		}
+		c.logger.Info("danmu info fetched", zap.Bool("buvid3_injected", buvid3Injected), zap.Bool("has_token", token != ""))
 	}
-	c.logger.Info("danmu info fetched", zap.Bool("buvid3_injected", buvid3Injected), zap.Bool("has_token", token != ""))
 
 	dialer := websocket.DefaultDialer
 	header := map[string][]string{

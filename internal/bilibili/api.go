@@ -77,7 +77,7 @@ func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string,
 
 	if len(info.Data.HostList) > 0 {
 		h := info.Data.HostList[0]
-		host = fmt.Sprintf("wss://%s/sub", h.Host)
+		host = fmt.Sprintf("wss://%s:%d/sub", h.Host, h.WssPort)
 	}
 	return info.Data.Token, host, buvid3Injected, nil
 }
