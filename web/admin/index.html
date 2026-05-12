@@ -1068,15 +1068,15 @@ async function loadCookies() {
   const el = document.getElementById('cookieList');
   if (!data || !data.length) { el.innerHTML = '<div class="empty-hint">NO ACCOUNTS</div>'; return; }
   el.innerHTML = data.map(c => `
-    <div class="cookie-row ${c.is_active ? 'active-cookie' : ''}">
-      <img class="cookie-face" src="${c.face || ''}" onerror="this.style.display='none'">
+    <div class="cookie-row ${c.IsActive ? 'active-cookie' : ''}">
+      <img class="cookie-face" src="${c.Face || ''}" onerror="this.style.display='none'">
       <div class="cookie-info">
-        <div class="cookie-label">${esc(c.label || '')} ${c.is_active ? '<span class="tag tag-green" style="font-size:9px">ACTIVE</span>' : ''}</div>
-        <div class="cookie-uid">UID: ${c.dede_user_id || '—'} ${c.is_valid ? '' : '<span class="tag tag-pink" style="font-size:9px">INVALID</span>'}</div>
+        <div class="cookie-label">${esc(c.Label || '')} ${c.IsActive ? '<span class="tag tag-green" style="font-size:9px">ACTIVE</span>' : ''}</div>
+        <div class="cookie-uid">UID: ${c.DedeUserID || '—'} ${c.IsValid ? '' : '<span class="tag tag-pink" style="font-size:9px">INVALID</span>'}</div>
       </div>
       <div class="cookie-actions">
-        ${!c.is_active ? `<button class="btn btn-sm btn-cyan" onclick="activateCookie(${c.id})">USE</button>` : ''}
-        <button class="btn btn-sm btn-pink" onclick="deleteCookie(${c.id})">DEL</button>
+        ${!c.IsActive ? `<button class="btn btn-sm btn-cyan" onclick="activateCookie(${c.ID})">USE</button>` : ''}
+        <button class="btn btn-sm btn-pink" onclick="deleteCookie(${c.ID})">DEL</button>
       </div>
     </div>`).join('');
 }
