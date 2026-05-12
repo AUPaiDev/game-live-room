@@ -109,6 +109,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .badge-active { background: #4caf50; color: #fff; }
 .badge-inactive { background: #555; color: #ccc; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -297,6 +298,20 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 </div>
 
 <script>
+// ---- Token Auth ----
+(function() {
+  const p = new URLSearchParams(location.search);
+  if (p.get('token')) sessionStorage.setItem('admin_token', p.get('token'));
+})();
+function getToken() { return sessionStorage.getItem('admin_token') || ''; }
+function apiFetch(url, opts) {
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  const t = getToken();
+  if (t) opts.headers['Authorization'] = 'Bearer ' + t;
+  return fetch(url, opts);
+}
+
 // ---- HTML Escape ----
 function escHtml(s) {
   return String(s ?? '')
@@ -315,7 +330,9 @@ let quizTimeLeft = 0;
 
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws?type=admin`);
+  const t = getToken();
+  const tokenParam = t ? `&token=${encodeURIComponent(t)}` : '';
+  ws = new WebSocket(`${proto}://${location.host}/ws?type=admin${tokenParam}`);
 
   ws.onopen = () => {
     setStatus('connected', '已连接');
@@ -426,17 +443,25 @@ function removeGiftRule(i) {
 function manualTriggerGift() {
   const name = document.getElementById('manualGiftName').value.trim();
   if (!name) return;
-  sendCmd('trigger_gift', { gift_name: name });
+  apiFetch('/api/gift/trigger', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gift_name: name })
+  });
 }
 function saveScConfig() {
   const price = parseInt(document.getElementById('scMinPrice').value);
-  sendCmd('set_sc_min_price', { min_price: price });
+  apiFetch('/api/sc/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ min_price: price })
+  });
 }
 
 // ---- Quiz ----
 let questions = [];
 function loadQuestions() {
-  fetch('/api/quiz/questions').then(r => r.json()).then(data => {
+  apiFetch('/api/quiz/questions').then(r => r.json()).then(data => {
     questions = data || [];
     renderQuestionList();
     renderQuizSelect();
@@ -475,21 +500,21 @@ function startQuiz() {
   const sel = document.getElementById('quizQuestionSelect');
   const id = parseInt(sel.value);
   if (!id) return;
-  fetch('/api/game/start', {
+  apiFetch('/api/game/start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ game: 'quiz', params: { question_id: id } })
   }).then(() => closeModal('startQuizModal'));
 }
 function startQuizWith(id) {
-  fetch('/api/game/start', {
+  apiFetch('/api/game/start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ game: 'quiz', params: { question_id: id } })
   });
 }
 function stopQuiz() {
-  fetch('/api/game/stop', { method: 'POST' });
+  apiFetch('/api/game/stop', { method: 'POST' });
 }
 function onQuizStarted(state) {
   document.getElementById('quizStatus').textContent = `答题中: ${(state.question || '').substring(0, 30)}`;
@@ -555,18 +580,18 @@ function saveQuestion() {
   };
   const url = id ? `/api/quiz/questions/${id}` : '/api/quiz/questions';
   const method = id ? 'PUT' : 'POST';
-  fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     .then(() => { closeModal('questionModal'); loadQuestions(); });
 }
 function deleteQuestion(id) {
   if (!confirm('确认删除？')) return;
-  fetch(`/api/quiz/questions/${id}`, { method: 'DELETE' }).then(() => loadQuestions());
+  apiFetch(`/api/quiz/questions/${id}`, { method: 'DELETE' }).then(() => loadQuestions());
 }
 
 // ---- Vote ----
 let voteActive = false;
 function startVote() {
-  fetch('/api/game/start', {
+  apiFetch('/api/game/start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ game: 'vote', params: {} })
@@ -577,14 +602,14 @@ function startVote() {
   });
 }
 function stopVote() {
-  fetch('/api/game/stop', { method: 'POST' }).then(() => {
+  apiFetch('/api/game/stop', { method: 'POST' }).then(() => {
     voteActive = false;
     document.getElementById('btnStartVote').style.display = '';
     document.getElementById('btnStopVote').style.display = 'none';
   });
 }
 function resetVote() {
-  fetch('/api/vote/reset', { method: 'POST' });
+  apiFetch('/api/vote/reset', { method: 'POST' });
 }
 function updateScoreboard(state) {
   if (!state) return;
@@ -611,7 +636,7 @@ function generateQR() {
   clearQRPoll();
   document.getElementById('qrStatus').textContent = '生成中...';
   document.getElementById('qrStatus').className = 'qr-status';
-  fetch('/api/auth/qrcode/generate').then(r => r.json()).then(data => {
+  apiFetch('/api/auth/qrcode/generate').then(r => r.json()).then(data => {
     if (!data.url) { setQRStatus('生成失败', ''); return; }
     currentQRKey = data.qrcode_key;
     drawQR(data.url);
@@ -622,7 +647,7 @@ function generateQR() {
 
 function pollQR() {
   if (!currentQRKey) return;
-  fetch(`/api/auth/qrcode/poll?qrcode_key=${encodeURIComponent(currentQRKey)}`)
+  apiFetch(`/api/auth/qrcode/poll?qrcode_key=${encodeURIComponent(currentQRKey)}`)
     .then(r => r.json()).then(data => {
       if (data.status === 86101) {
         setQRStatus('等待扫码...', '');
@@ -657,34 +682,22 @@ function clearCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-// Minimal QR code renderer using the qrcode-generator library loaded inline.
-// We use a simple fetch-to-img approach via a data URL from the B站 QR URL.
 function drawQR(url) {
-  // Use Google Charts QR API as a fallback renderer (no external JS needed).
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    const canvas = document.getElementById('qrCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  };
-  img.onerror = () => {
-    // Fallback: show the URL as text
-    const canvas = document.getElementById('qrCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#333';
-    ctx.font = '10px monospace';
-    ctx.fillText('扫码URL已生成', 10, 100);
-  };
-  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+  const canvas = document.getElementById('qrCanvas');
+  QRCode.toCanvas(canvas, url, { width: 200, margin: 1 }, function(err) {
+    if (err) {
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#333';
+      ctx.font = '10px monospace';
+      ctx.fillText('QR 生成失败', 10, 100);
+    }
+  });
 }
 
 function loadCookies() {
-  fetch('/api/auth/cookies').then(r => r.json()).then(data => {
+  apiFetch('/api/auth/cookies').then(r => r.json()).then(data => {
     const el = document.getElementById('cookieList');
     if (!data || data.length === 0) {
       el.innerHTML = '<div style="color:#aaa;font-size:13px">暂无账号</div>';
@@ -708,22 +721,17 @@ function loadCookies() {
 
 function deleteCookie(id) {
   if (!confirm('确认删除该账号？')) return;
-  fetch(`/api/auth/cookies/${id}`, { method: 'DELETE' }).then(() => loadCookies());
+  apiFetch(`/api/auth/cookies/${id}`, { method: 'DELETE' }).then(() => loadCookies());
 }
 
 // ---- Helpers ----
-function sendCmd(action, params) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'cmd', payload: { action, params } }));
-  }
-}
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 // ---- Init ----
 connectWS();
 loadQuestions();
-fetch('/api/events?limit=50').then(r => r.json()).then(events => {
+apiFetch('/api/events?limit=50').then(r => r.json()).then(events => {
   (events || []).reverse().forEach(e => appendEvent({
     cmd: e.Cmd, username: e.Username, text: e.Text || e.GiftName
   }));

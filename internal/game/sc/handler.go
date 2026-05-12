@@ -22,6 +22,11 @@ func New(h *hub.Hub, cfg *config.SCTriggerConfig, logger *zap.Logger) *Handler {
 	return &Handler{hub: h, config: cfg, logger: logger}
 }
 
+// SetMinPrice updates the minimum SC price threshold at runtime.
+func (h *Handler) SetMinPrice(price int) {
+	h.config.MinPrice = price
+}
+
 // HandleSuperChat processes a SUPER_CHAT_MESSAGE and triggers display if above threshold.
 func (h *Handler) HandleSuperChat(msg bilibili.LiveMessage) {
 	if !h.config.Enabled {

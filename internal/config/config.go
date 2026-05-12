@@ -19,7 +19,8 @@ type Config struct {
 
 // ServerConfig holds HTTP server settings.
 type ServerConfig struct {
-	Port int `mapstructure:"port"`
+	Port       int    `mapstructure:"port"`
+	AdminToken string `mapstructure:"admin_token"`
 }
 
 // MySQLConfig holds database connection settings.
@@ -147,6 +148,9 @@ func applyEnvOverrides(cfg *Config) {
 		if p, err := strconv.Atoi(port); err == nil {
 			cfg.Server.Port = p
 		}
+	}
+	if token := os.Getenv("ADMIN_TOKEN"); token != "" {
+		cfg.Server.AdminToken = token
 	}
 }
 

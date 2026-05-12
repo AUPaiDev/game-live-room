@@ -154,9 +154,15 @@ func (s *Store) CreateVoteSession(sess *model.VoteSession) error {
 	return nil
 }
 
-// UpdateVoteSession updates an existing vote session.
+// UpdateVoteSession updates only the status and ended_at fields of a vote session.
 func (s *Store) UpdateVoteSession(sess *model.VoteSession) error {
-	if err := s.db.Save(sess).Error; err != nil {
+	err := s.db.Model(sess).
+		Where("id = ?", sess.ID).
+		Updates(map[string]interface{}{
+			"status":   sess.Status,
+			"ended_at": sess.EndedAt,
+		}).Error
+	if err != nil {
 		return fmt.Errorf("update vote session: %w", err)
 	}
 	return nil

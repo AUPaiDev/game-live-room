@@ -35,6 +35,22 @@ func (h *Handler) HandleGift(msg bilibili.LiveMessage) {
 	}
 }
 
+// TriggerManual fires the configured action for the given gift name without a live event.
+func (h *Handler) TriggerManual(giftName string) {
+	if !h.config.Enabled {
+		return
+	}
+	for _, rule := range h.config.Rules {
+		if rule.GiftName == giftName {
+			h.triggerAction(bilibili.LiveMessage{
+				GiftName: giftName,
+				Username: "手动触发",
+			}, rule)
+			return
+		}
+	}
+}
+
 func (h *Handler) triggerAction(msg bilibili.LiveMessage, rule config.GiftRule) {
 	payload, _ := json.Marshal(map[string]interface{}{
 		"uid":       msg.UID,

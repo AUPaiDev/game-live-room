@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -83,7 +84,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
-		Handler: buildRouter(h, engine, st, logger, cfg.Bilibili.UserAgent),
+		Handler: buildRouter(h, engine, st, logger, cfg.Bilibili.UserAgent, cfg.Server.AdminToken),
 	}
 
 	go func() {
@@ -107,30 +108,78 @@ func main() {
 	}
 }
 
-func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, logger *zap.Logger, userAgent string) http.Handler {
+func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, logger *zap.Logger, userAgent string, adminToken string) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.Handle("/ws", h)
+	// /ws: overlay connections are unauthenticated; admin connections require token.
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("type") != "overlay" {
+			if adminToken != "" {
+				token := ""
+				if auth := r.Header.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
+					token = strings.TrimPrefix(auth, "Bearer ")
+				} else if q := r.URL.Query().Get("token"); q != "" {
+					token = q
+				}
+				if token != adminToken {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+					return
+				}
+			}
+		}
+		h.ServeHTTP(w, r)
+	})
+
 	mux.Handle("/admin/", http.StripPrefix("/admin/", http.FileServer(http.Dir("web/admin"))))
 	mux.Handle("/overlay/", http.StripPrefix("/overlay/", http.FileServer(http.Dir("web/overlay"))))
 
-	mux.HandleFunc("/api/health", handleHealth)
-	mux.HandleFunc("/api/game/state", handleGameState(engine))
-	mux.HandleFunc("/api/game/start", handleGameStart(engine))
-	mux.HandleFunc("/api/game/stop", handleGameStop(engine))
-	mux.HandleFunc("/api/quiz/questions", handleQuizQuestions(st))
-	mux.HandleFunc("/api/quiz/questions/", handleQuizQuestion(st))
-	mux.HandleFunc("/api/vote/scores", handleVoteScores(engine, st))
-	mux.HandleFunc("/api/vote/reset", handleVoteReset(engine))
-	mux.HandleFunc("/api/events", handleEvents(st))
+	// All /api/* routes are protected by adminAuth.
+	apiMux := http.NewServeMux()
+	apiMux.HandleFunc("/api/health", handleHealth)
+	apiMux.HandleFunc("/api/game/state", handleGameState(engine))
+	apiMux.HandleFunc("/api/game/start", handleGameStart(engine))
+	apiMux.HandleFunc("/api/game/stop", handleGameStop(engine))
+	apiMux.HandleFunc("/api/quiz/questions", handleQuizQuestions(st))
+	apiMux.HandleFunc("/api/quiz/questions/", handleQuizQuestion(st))
+	apiMux.HandleFunc("/api/vote/scores", handleVoteScores(engine, st))
+	apiMux.HandleFunc("/api/vote/reset", handleVoteReset(engine))
+	apiMux.HandleFunc("/api/events", handleEvents(st))
+	apiMux.HandleFunc("/api/gift/trigger", handleGiftTrigger(engine))
+	apiMux.HandleFunc("/api/sc/config", handleSCConfig(engine))
 
 	// Auth: B站 QR code login
-	mux.HandleFunc("/api/auth/qrcode/generate", handleQRCodeGenerate(userAgent))
-	mux.HandleFunc("/api/auth/qrcode/poll", handleQRCodePoll(st, userAgent))
-	mux.HandleFunc("/api/auth/cookies", handleCookies(st))
-	mux.HandleFunc("/api/auth/cookies/", handleCookieDelete(st))
+	apiMux.HandleFunc("/api/auth/qrcode/generate", handleQRCodeGenerate(userAgent))
+	apiMux.HandleFunc("/api/auth/qrcode/poll", handleQRCodePoll(st, userAgent))
+	apiMux.HandleFunc("/api/auth/cookies", handleCookies(st))
+	apiMux.HandleFunc("/api/auth/cookies/", handleCookieDelete(st))
+
+	mux.Handle("/api/", adminAuth(adminToken, apiMux))
 
 	return mux
+}
+
+func adminAuth(adminToken string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if adminToken == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		token := ""
+		if auth := r.Header.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
+			token = strings.TrimPrefix(auth, "Bearer ")
+		} else if q := r.URL.Query().Get("token"); q != "" {
+			token = q
+		}
+		if token != adminToken {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -308,6 +357,46 @@ func handleEvents(st *store.Store) http.HandlerFunc {
 	}
 }
 
+func handleGiftTrigger(engine *game.Engine) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			GiftName string `json:"gift_name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(err))
+			return
+		}
+		if body.GiftName == "" {
+			writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("missing gift_name")))
+			return
+		}
+		engine.TriggerGift(body.GiftName)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
+}
+
+func handleSCConfig(engine *game.Engine) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			MinPrice int `json:"min_price"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(err))
+			return
+		}
+		engine.SetSCMinPrice(body.MinPrice)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
+}
+
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -359,6 +448,16 @@ func handleQRCodePoll(st *store.Store, userAgent string) http.HandlerFunc {
 	}
 }
 
+// cookieSafeView is a DTO that exposes only non-sensitive cookie fields.
+type cookieSafeView struct {
+	ID         uint64 `json:"ID"`
+	Label      string `json:"Label"`
+	Face       string `json:"Face"`
+	DedeUserID string `json:"DedeUserID"`
+	IsActive   bool   `json:"IsActive"`
+	IsValid    bool   `json:"IsValid"`
+}
+
 func handleCookies(st *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookies, err := st.ListCookies()
@@ -366,7 +465,18 @@ func handleCookies(st *store.Store) http.HandlerFunc {
 			writeJSON(w, http.StatusInternalServerError, errResp(err))
 			return
 		}
-		writeJSON(w, http.StatusOK, cookies)
+		views := make([]cookieSafeView, 0, len(cookies))
+		for _, c := range cookies {
+			views = append(views, cookieSafeView{
+				ID:         c.ID,
+				Label:      c.Label,
+				Face:       c.Face,
+				DedeUserID: c.DedeUserID,
+				IsActive:   c.IsActive,
+				IsValid:    c.IsValid,
+			})
+		}
+		writeJSON(w, http.StatusOK, views)
 	}
 }
 

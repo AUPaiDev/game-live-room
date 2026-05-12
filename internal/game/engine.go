@@ -159,6 +159,16 @@ func (e *Engine) VoteHandler() *vote.Handler {
 	return e.vote
 }
 
+// TriggerGift manually fires the gift trigger for the given gift name.
+func (e *Engine) TriggerGift(giftName string) {
+	e.gift.TriggerManual(giftName)
+}
+
+// SetSCMinPrice updates the SC minimum price threshold at runtime.
+func (e *Engine) SetSCMinPrice(price int) {
+	e.sc.SetMinPrice(price)
+}
+
 func (e *Engine) setActiveGame(name string) {
 	e.mu.Lock()
 	e.activeGame = name
