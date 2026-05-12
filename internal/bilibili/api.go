@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
 )
@@ -30,25 +31,32 @@ type danmuInfoResp struct {
 }
 
 // GetDanmuInfo fetches the danmaku WebSocket token and host for a room.
-// It uses the provided cookie for authentication.
-// Returns an extra bool indicating whether a buvid3 fingerprint was successfully injected.
-func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string, host string, buvid3Injected bool, err error) {
-	// Append buvid3 fingerprint to bypass B站 risk control on server IPs.
-	if buvid3 := FetchBuvid3(userAgent); buvid3 != "" && !strings.Contains(cookie, "buvid3=") {
-		if cookie != "" {
-			cookie = cookie + "; buvid3=" + buvid3
-		} else {
-			cookie = "buvid3=" + buvid3
-		}
-		buvid3Injected = true
+// It uses a cookie jar to visit bilibili.com first, which causes B站 to set
+// buvid3/b_nut cookies that are required to bypass risk control (-352).
+func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string, host string, err error) {
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Jar: jar}
+
+	// Step 1: visit bilibili.com with auth cookies so B站 sets buvid3/b_nut in the jar.
+	warmReq, err := http.NewRequest(http.MethodGet, "https://www.bilibili.com/", nil)
+	if err != nil {
+		return "", "", fmt.Errorf("create warm request: %w", err)
+	}
+	warmReq.Header.Set("User-Agent", userAgent)
+	warmReq.Header.Set("Cookie", cookie)
+	warmReq.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	warmReq.Header.Set("Accept-Language", "zh-CN,zh;q=0.9")
+	warmResp, err := client.Do(warmReq)
+	if err == nil {
+		warmResp.Body.Close()
 	}
 
+	// Step 2: call getDanmuInfo — jar now contains buvid3/b_nut set by B站.
 	reqURL := fmt.Sprintf(danmuInfoURL, roomID)
 	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
-		return "", "", buvid3Injected, fmt.Errorf("create request: %w", err)
+		return "", "", fmt.Errorf("create request: %w", err)
 	}
-
 	req.Header.Set("Cookie", cookie)
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Referer", "https://live.bilibili.com/")
@@ -56,30 +64,30 @@ func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string,
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		return "", "", buvid3Injected, fmt.Errorf("get danmu info: %w", err)
+		return "", "", fmt.Errorf("get danmu info: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", "", buvid3Injected, fmt.Errorf("read response: %w", err)
+		return "", "", fmt.Errorf("read response: %w", err)
 	}
 
 	var info danmuInfoResp
 	if err := json.Unmarshal(body, &info); err != nil {
-		return "", "", buvid3Injected, fmt.Errorf("parse danmu info: %w", err)
+		return "", "", fmt.Errorf("parse danmu info: %w", err)
 	}
 	if info.Code != 0 {
-		return "", "", buvid3Injected, fmt.Errorf("danmu info api error %d: %s", info.Code, info.Message)
+		return "", "", fmt.Errorf("danmu info api error %d: %s", info.Code, info.Message)
 	}
 
 	if len(info.Data.HostList) > 0 {
 		h := info.Data.HostList[0]
 		host = fmt.Sprintf("wss://%s:%d/sub", h.Host, h.WssPort)
 	}
-	return info.Data.Token, host, buvid3Injected, nil
+	return info.Data.Token, host, nil
 }
 
 // FetchBuvid3 fetches a browser fingerprint from B站 to bypass risk control on server IPs.

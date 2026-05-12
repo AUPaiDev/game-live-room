@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/andybalholm/brotli"
@@ -113,7 +112,7 @@ func (c *DanmakuClient) Connect(ctx context.Context) {
 		}
 
 		// Refresh token before reconnecting.
-		token, host, _, err := GetDanmuInfo(c.roomID, c.activeCookie(), c.userAgent)
+		token, host, err := GetDanmuInfo(c.roomID, c.activeCookie(), c.userAgent)
 		if err != nil {
 			c.logger.Warn("refresh danmu info failed", zap.Error(err))
 		} else {
@@ -129,34 +128,23 @@ func (c *DanmakuClient) connect(ctx context.Context) error {
 	cookie := c.activeCookie()
 
 	var token string
-	var buvid3Injected bool
 
 	if c.cachedToken != "" {
-		// Use pre-fetched token from reconnect loop; still inject buvid3 if needed.
 		token = c.cachedToken
 		c.cachedToken = ""
-		if buvid3 := FetchBuvid3(c.userAgent); buvid3 != "" && !strings.Contains(cookie, "buvid3=") {
-			if cookie != "" {
-				cookie = cookie + "; buvid3=" + buvid3
-			} else {
-				cookie = "buvid3=" + buvid3
-			}
-			buvid3Injected = true
-		}
-		c.logger.Info("danmu info (cached)", zap.Bool("buvid3_injected", buvid3Injected), zap.Bool("has_token", token != ""))
+		c.logger.Info("danmu info (cached)", zap.Bool("has_token", token != ""))
 	} else {
 		var err error
-		token, _, buvid3Injected, err = GetDanmuInfo(c.roomID, cookie, c.userAgent)
+		token, _, err = GetDanmuInfo(c.roomID, cookie, c.userAgent)
 		if err != nil {
 			if c.manualToken != "" {
-				// getDanmuInfo blocked (e.g. server IP flagged); fall back to manually-set token.
 				token = c.manualToken
 				c.logger.Info("danmu info blocked, using manual token", zap.Error(err))
 			} else {
 				c.logger.Warn("get danmu info failed, connecting without token", zap.Error(err))
 			}
 		}
-		c.logger.Info("danmu info fetched", zap.Bool("buvid3_injected", buvid3Injected), zap.Bool("has_token", token != ""), zap.Bool("manual_token", token == c.manualToken && c.manualToken != ""))
+		c.logger.Info("danmu info fetched", zap.Bool("has_token", token != ""), zap.Bool("manual_token", token == c.manualToken && c.manualToken != ""))
 	}
 
 	dialer := websocket.DefaultDialer
