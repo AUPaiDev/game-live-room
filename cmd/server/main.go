@@ -150,10 +150,10 @@ func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, logger *zap.L
 	apiMux.HandleFunc("/api/sc/config", handleSCConfig(engine))
 
 	// Auth: B站 QR code login
-	apiMux.HandleFunc("/api/auth/qrcode/generate", handleQRCodeGenerate(userAgent))
-	apiMux.HandleFunc("/api/auth/qrcode/poll", handleQRCodePoll(st, userAgent))
+	apiMux.HandleFunc("/api/auth/qr/generate", handleQRCodeGenerate(userAgent))
+	apiMux.HandleFunc("/api/auth/qr/poll", handleQRCodePoll(st, userAgent))
 	apiMux.HandleFunc("/api/auth/cookies", handleCookies(st))
-	apiMux.HandleFunc("/api/auth/cookies/", handleCookieDelete(st))
+	apiMux.HandleFunc("/api/auth/cookies/", handleCookieOp(st))
 
 	mux.Handle("/api/", adminAuth(adminToken, apiMux))
 
@@ -420,9 +420,9 @@ func handleQRCodeGenerate(userAgent string) http.HandlerFunc {
 
 func handleQRCodePoll(st *store.Store, userAgent string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		key := r.URL.Query().Get("qrcode_key")
+		key := r.URL.Query().Get("key")
 		if key == "" {
-			writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("missing qrcode_key")))
+			writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("missing key")))
 			return
 		}
 		result, err := bilibili.PollQRCode(key, userAgent)
@@ -480,14 +480,34 @@ func handleCookies(st *store.Store) http.HandlerFunc {
 	}
 }
 
-func handleCookieDelete(st *store.Store) http.HandlerFunc {
+func handleCookieOp(st *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Path is either /api/auth/cookies/{id} or /api/auth/cookies/{id}/activate
+		suffix := r.URL.Path[len("/api/auth/cookies/"):]
+		if strings.HasSuffix(suffix, "/activate") {
+			idStr := strings.TrimSuffix(suffix, "/activate")
+			id, err := strconv.ParseUint(idStr, 10, 64)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("invalid id")))
+				return
+			}
+			if r.Method != http.MethodPost {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			if err := st.ActivateCookie(uint(id)); err != nil {
+				writeJSON(w, http.StatusInternalServerError, errResp(err))
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+			return
+		}
+		// Plain /api/auth/cookies/{id} — only DELETE supported
 		if r.Method != http.MethodDelete {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		idStr := r.URL.Path[len("/api/auth/cookies/"):]
-		id, err := strconv.ParseUint(idStr, 10, 64)
+		id, err := strconv.ParseUint(suffix, 10, 64)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("invalid id")))
 			return

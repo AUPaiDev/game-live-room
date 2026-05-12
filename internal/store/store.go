@@ -216,3 +216,20 @@ func (s *Store) DeleteCookie(id uint64) error {
 	}
 	return nil
 }
+
+// ActivateCookie sets the specified cookie as active and deactivates all others.
+func (s *Store) ActivateCookie(id uint) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.BiliCookie{}).
+			Where("is_active = ?", true).
+			Update("is_active", false).Error; err != nil {
+			return fmt.Errorf("deactivate cookies: %w", err)
+		}
+		if err := tx.Model(&model.BiliCookie{}).
+			Where("id = ?", id).
+			Update("is_active", true).Error; err != nil {
+			return fmt.Errorf("activate cookie %d: %w", id, err)
+		}
+		return nil
+	})
+}
