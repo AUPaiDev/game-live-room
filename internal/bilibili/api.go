@@ -34,7 +34,7 @@ type danmuInfoResp struct {
 // Returns an extra bool indicating whether a buvid3 fingerprint was successfully injected.
 func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string, host string, buvid3Injected bool, err error) {
 	// Append buvid3 fingerprint to bypass B站 risk control on server IPs.
-	if buvid3 := fetchBuvid3(userAgent); buvid3 != "" && !strings.Contains(cookie, "buvid3=") {
+	if buvid3 := FetchBuvid3(userAgent); buvid3 != "" && !strings.Contains(cookie, "buvid3=") {
 		if cookie != "" {
 			cookie = cookie + "; buvid3=" + buvid3
 		} else {
@@ -82,9 +82,9 @@ func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string,
 	return info.Data.Token, host, buvid3Injected, nil
 }
 
-// fetchBuvid3 fetches a browser fingerprint from B站 to bypass risk control on server IPs.
+// FetchBuvid3 fetches a browser fingerprint from B站 to bypass risk control on server IPs.
 // Returns empty string on any failure; callers should proceed without it.
-func fetchBuvid3(userAgent string) string {
+func FetchBuvid3(userAgent string) string {
 	req, err := http.NewRequest(http.MethodGet, fingerURL, nil)
 	if err != nil {
 		return ""

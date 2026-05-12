@@ -128,7 +128,7 @@ func (c *DanmakuClient) connect(ctx context.Context) error {
 		// Use pre-fetched token from reconnect loop; still inject buvid3 if needed.
 		token = c.cachedToken
 		c.cachedToken = ""
-		if buvid3 := fetchBuvid3(c.userAgent); buvid3 != "" && !strings.Contains(cookie, "buvid3=") {
+		if buvid3 := FetchBuvid3(c.userAgent); buvid3 != "" && !strings.Contains(cookie, "buvid3=") {
 			if cookie != "" {
 				cookie = cookie + "; buvid3=" + buvid3
 			} else {

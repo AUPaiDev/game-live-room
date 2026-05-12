@@ -434,12 +434,16 @@ func handleQRCodePoll(st *store.Store, userAgent string) http.HandlerFunc {
 		if result.Status == 0 && result.SESSDATA != "" {
 			info, err := bilibili.VerifyCookie(result.SESSDATA, result.BiliJCT, result.DedeUserID, userAgent)
 			if err == nil && info.IsValid {
+				// Fetch a buvid3 fingerprint to include with the cookie.
+				// This helps bypass B站 risk control when calling APIs from a server IP.
+				buvid3 := bilibili.FetchBuvid3(userAgent)
 				c := &model.BiliCookie{
 					Label:      info.Uname,
 					SESSDATA:   result.SESSDATA,
 					BiliJCT:    result.BiliJCT,
 					DedeUserID: result.DedeUserID,
 					Face:       info.Face,
+					Buvid3:     buvid3,
 				}
 				_ = st.SaveCookie(c)
 			}
