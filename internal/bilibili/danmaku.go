@@ -104,7 +104,7 @@ func (c *DanmakuClient) Connect(ctx context.Context) {
 		}
 
 		// Refresh token before reconnecting.
-		token, host, err := GetDanmuInfo(c.roomID, c.activeCookie(), c.userAgent)
+		token, host, _, err := GetDanmuInfo(c.roomID, c.activeCookie(), c.userAgent)
 		if err != nil {
 			c.logger.Warn("refresh danmu info failed", zap.Error(err))
 		} else if host != "" {
@@ -116,10 +116,11 @@ func (c *DanmakuClient) Connect(ctx context.Context) {
 
 func (c *DanmakuClient) connect(ctx context.Context) error {
 	cookie := c.activeCookie()
-	token, _, err := GetDanmuInfo(c.roomID, cookie, c.userAgent)
+	token, _, buvid3Injected, err := GetDanmuInfo(c.roomID, cookie, c.userAgent)
 	if err != nil {
 		c.logger.Warn("get danmu info failed, connecting without token", zap.Error(err))
 	}
+	c.logger.Info("danmu info fetched", zap.Bool("buvid3_injected", buvid3Injected), zap.Bool("has_token", token != ""))
 
 	dialer := websocket.DefaultDialer
 	header := map[string][]string{

@@ -31,7 +31,8 @@ type danmuInfoResp struct {
 
 // GetDanmuInfo fetches the danmaku WebSocket token and host for a room.
 // It uses the provided cookie for authentication.
-func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string, host string, err error) {
+// Returns an extra bool indicating whether a buvid3 fingerprint was successfully injected.
+func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string, host string, buvid3Injected bool, err error) {
 	// Append buvid3 fingerprint to bypass B站 risk control on server IPs.
 	if buvid3 := fetchBuvid3(userAgent); buvid3 != "" && !strings.Contains(cookie, "buvid3=") {
 		if cookie != "" {
@@ -39,42 +40,46 @@ func GetDanmuInfo(roomID uint64, cookie string, userAgent string) (token string,
 		} else {
 			cookie = "buvid3=" + buvid3
 		}
+		buvid3Injected = true
 	}
 
 	reqURL := fmt.Sprintf(danmuInfoURL, roomID)
 	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
-		return "", "", fmt.Errorf("create request: %w", err)
+		return "", "", buvid3Injected, fmt.Errorf("create request: %w", err)
 	}
 
 	req.Header.Set("Cookie", cookie)
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Referer", "https://live.bilibili.com/")
+	req.Header.Set("Origin", "https://live.bilibili.com")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", "", fmt.Errorf("get danmu info: %w", err)
+		return "", "", buvid3Injected, fmt.Errorf("get danmu info: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", "", fmt.Errorf("read response: %w", err)
+		return "", "", buvid3Injected, fmt.Errorf("read response: %w", err)
 	}
 
 	var info danmuInfoResp
 	if err := json.Unmarshal(body, &info); err != nil {
-		return "", "", fmt.Errorf("parse danmu info: %w", err)
+		return "", "", buvid3Injected, fmt.Errorf("parse danmu info: %w", err)
 	}
 	if info.Code != 0 {
-		return "", "", fmt.Errorf("danmu info api error %d: %s", info.Code, info.Message)
+		return "", "", buvid3Injected, fmt.Errorf("danmu info api error %d: %s", info.Code, info.Message)
 	}
 
 	if len(info.Data.HostList) > 0 {
 		h := info.Data.HostList[0]
 		host = fmt.Sprintf("wss://%s/sub", h.Host)
 	}
-	return info.Data.Token, host, nil
+	return info.Data.Token, host, buvid3Injected, nil
 }
 
 // fetchBuvid3 fetches a browser fingerprint from B站 to bypass risk control on server IPs.
@@ -86,6 +91,9 @@ func fetchBuvid3(userAgent string) string {
 	}
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Referer", "https://www.bilibili.com/")
+	req.Header.Set("Origin", "https://www.bilibili.com")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return ""
