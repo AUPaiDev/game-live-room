@@ -37,6 +37,7 @@ func (h *Handler) HandleSuperChat(msg bilibili.LiveMessage) {
 	}
 
 	payload, _ := json.Marshal(map[string]interface{}{
+		"cmd":      "SUPER_CHAT_MESSAGE",
 		"uid":      msg.UID,
 		"username": msg.Username,
 		"text":     msg.Text,

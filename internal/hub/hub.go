@@ -24,14 +24,21 @@ type Message struct {
 	Payload json.RawMessage `json:"payload,omitempty"`
 }
 
+// targetedMessage is a message directed at a specific client type.
+type targetedMessage struct {
+	clientType ClientType
+	msg        Message
+}
+
 // Hub manages WebSocket connections and broadcasts messages.
 type Hub struct {
-	clients    map[*client]bool
-	clientsMu  sync.RWMutex
-	register  chan *client
-	unregister chan *client
-	broadcast chan Message
-	upgrader  websocket.Upgrader
+	clients     map[*client]bool
+	clientsMu   sync.RWMutex
+	register    chan *client
+	unregister  chan *client
+	broadcast   chan Message
+	broadcastTo chan targetedMessage
+	upgrader    websocket.Upgrader
 }
 
 // client represents a connected WebSocket client.
@@ -45,14 +52,15 @@ type client struct {
 // New creates a new Hub.
 func New() *Hub {
 	return &Hub{
-		clients:    make(map[*client]bool),
-		register:  make(chan *client),
-		unregister: make(chan *client),
-		broadcast: make(chan Message, 256),
+		clients:     make(map[*client]bool),
+		register:    make(chan *client),
+		unregister:  make(chan *client),
+		broadcast:   make(chan Message, 256),
+		broadcastTo: make(chan targetedMessage, 256),
 		upgrader: websocket.Upgrader{
-			CheckOrigin: func(r *http.Request) bool { return true },
+			CheckOrigin:     func(r *http.Request) bool { return true },
 			ReadBufferSize:  1024,
-			WriteBufferSize:  1024,
+			WriteBufferSize: 1024,
 		},
 	}
 }
@@ -85,6 +93,30 @@ func (h *Hub) Run(ctx context.Context) {
 				case c.send <- data:
 				default:
 					dead = append(dead, c)
+				}
+			}
+			h.clientsMu.RUnlock()
+			if len(dead) > 0 {
+				h.clientsMu.Lock()
+				for _, c := range dead {
+					if _, ok := h.clients[c]; ok {
+						delete(h.clients, c)
+						close(c.send)
+					}
+				}
+				h.clientsMu.Unlock()
+			}
+		case tm := <-h.broadcastTo:
+			data := h.marshal(tm.msg)
+			var dead []*client
+			h.clientsMu.RLock()
+			for c := range h.clients {
+				if c.clientType == tm.clientType {
+					select {
+					case c.send <- data:
+					default:
+						dead = append(dead, c)
+					}
 				}
 			}
 			h.clientsMu.RUnlock()
@@ -152,19 +184,12 @@ func (h *Hub) Broadcast(msg Message) {
 	}
 }
 
-// BroadcastTo sends a message to clients of a specific type.
+// BroadcastTo sends a message to clients of a specific type via the event loop.
 func (h *Hub) BroadcastTo(clientType ClientType, msg Message) {
-	data := h.marshal(msg)
-	h.clientsMu.RLock()
-	defer h.clientsMu.RUnlock()
-	for c := range h.clients {
-		if c.clientType == clientType {
-			select {
-			case c.send <- data:
-			default:
-				// channel full, skip
-			}
-		}
+	select {
+	case h.broadcastTo <- targetedMessage{clientType: clientType, msg: msg}:
+	default:
+		// channel full, skip
 	}
 }
 

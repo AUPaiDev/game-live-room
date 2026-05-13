@@ -53,6 +53,7 @@ func (h *Handler) TriggerManual(giftName string) {
 
 func (h *Handler) triggerAction(msg bilibili.LiveMessage, rule config.GiftRule) {
 	payload, _ := json.Marshal(map[string]interface{}{
+		"cmd":       "SEND_GIFT",
 		"uid":       msg.UID,
 		"username":  msg.Username,
 		"gift_name": msg.GiftName,

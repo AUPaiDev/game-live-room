@@ -3,503 +3,525 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LIVE CONTROL</title>
+<title>Live Control ✦ Pastel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 :root {
-  --cyan: #00f5ff;
-  --cyan-dim: rgba(0,245,255,0.15);
-  --cyan-glow: 0 0 8px rgba(0,245,255,0.6), 0 0 20px rgba(0,245,255,0.2);
-  --pink: #ff2d78;
-  --pink-dim: rgba(255,45,120,0.15);
-  --pink-glow: 0 0 8px rgba(255,45,120,0.6), 0 0 20px rgba(255,45,120,0.2);
-  --gold: #ffd700;
-  --green: #39ff14;
-  --green-dim: rgba(57,255,20,0.12);
-  --red: #ff3333;
-  --bg0: #050810;
-  --bg1: #0a0f1e;
-  --bg2: #0f1628;
-  --bg3: #1a2040;
-  --border: rgba(0,245,255,0.18);
-  --text: #c8d8e8;
-  --text-dim: rgba(200,216,232,0.5);
-  --sidebar-w: 64px;
-  --header-h: 52px;
+  --bg:            #F8F4FF;
+  --sidebar:       #EDE8FF;
+  --card:          #FFFFFF;
+  --primary:       #8B5CF6;
+  --primary-dim:   rgba(139,92,246,0.12);
+  --primary-glow:  0 4px 16px rgba(139,92,246,0.18);
+  --secondary:     #EC4899;
+  --secondary-dim: rgba(236,72,153,0.12);
+  --success:       #10B981;
+  --success-dim:   rgba(16,185,129,0.12);
+  --error:         #EF4444;
+  --error-dim:     rgba(239,68,68,0.12);
+  --gold:          #F59E0B;
+  --gold-dim:      rgba(245,158,11,0.12);
+  --text:          #2D2040;
+  --text-dim:      #9B8BB4;
+  --border:        #DDD6FE;
+  --sidebar-w:     80px;
+  --header-h:      56px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
   height: 100%;
-  background: var(--bg0);
+  background: var(--bg);
   color: var(--text);
-  font-family: 'Noto Sans SC', sans-serif;
+  font-family: 'Noto Sans SC', 'Nunito', sans-serif;
   font-size: 13px;
   overflow: hidden;
 }
 
-/* Scanline overlay */
+/* Dot-grid background */
 body::before {
   content: '';
   position: fixed; inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.08) 2px,
-    rgba(0,0,0,0.08) 4px
-  );
+  background: radial-gradient(circle, rgba(139,92,246,0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 0;
 }
 
 /* ---- HEADER ---- */
 #header {
   position: fixed; top: 0; left: 0; right: 0;
   height: var(--header-h);
-  background: var(--bg1);
-  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 2px 16px rgba(139,92,246,0.08);
   display: flex; align-items: center;
-  padding: 0 20px 0 calc(var(--sidebar-w) + 20px);
+  padding: 0 24px 0 calc(var(--sidebar-w) + 24px);
   z-index: 100;
   gap: 16px;
 }
-#header::after {
-  content: '';
-  position: absolute; bottom: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-  opacity: 0.5;
-}
+
 .header-logo {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 20px; font-weight: 700;
-  color: var(--cyan);
-  letter-spacing: 3px;
-  text-shadow: var(--cyan-glow);
-  margin-right: 8px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 20px; font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
 }
+
 .header-sep { width: 1px; height: 24px; background: var(--border); }
+
 .header-status {
-  display: flex; align-items: center; gap: 6px;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px; color: var(--text-dim);
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px; color: var(--text-dim); font-weight: 600;
 }
+
 .status-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--red);
-  box-shadow: 0 0 6px var(--red);
-  transition: background 0.3s, box-shadow 0.3s;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--error);
+  transition: background 0.3s;
 }
 .status-dot.live {
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
+  background: var(--success);
   animation: pulse 2s infinite;
 }
 @keyframes pulse {
-  0%,100% { opacity: 1; } 50% { opacity: 0.5; }
+  0%,100% { opacity: 1; } 50% { opacity: 0.6; }
 }
+
 .header-spacer { flex: 1; }
+
 .header-game-badge {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px; padding: 3px 10px;
-  border: 1px solid var(--cyan);
-  color: var(--cyan);
-  border-radius: 2px;
-  letter-spacing: 1px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px; font-weight: 700;
+  padding: 5px 16px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  border-radius: 999px;
+  letter-spacing: 0.3px;
   display: none;
 }
 .header-game-badge.active { display: block; }
+
 #wsStatus {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px; color: var(--text-dim);
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px; color: var(--text-dim); font-weight: 600;
 }
 
 /* ---- SIDEBAR ---- */
 #sidebar {
   position: fixed; top: var(--header-h); left: 0; bottom: 0;
   width: var(--sidebar-w);
-  background: var(--bg1);
-  border-right: 1px solid var(--border);
+  background: var(--sidebar);
   display: flex; flex-direction: column;
   align-items: center;
-  padding: 12px 0;
-  gap: 4px;
+  padding: 16px 0;
+  gap: 6px;
   z-index: 100;
 }
+
 .nav-btn {
-  width: 44px; height: 44px;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  width: 58px; height: 58px;
+  border: none;
+  border-radius: 14px;
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 3px;
+  gap: 4px;
   transition: all 0.2s;
-  position: relative;
 }
-.nav-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); background: var(--cyan-dim); }
+.nav-btn:hover {
+  color: var(--primary);
+  background: rgba(139,92,246,0.10);
+}
 .nav-btn.active {
-  color: var(--cyan);
-  border-color: var(--cyan);
-  background: var(--cyan-dim);
-  box-shadow: var(--cyan-glow);
+  color: var(--primary);
+  background: var(--card);
+  box-shadow: 0 4px 14px rgba(139,92,246,0.20);
 }
-.nav-btn svg { width: 18px; height: 18px; }
-.nav-label { font-size: 9px; font-family: 'Share Tech Mono', monospace; letter-spacing: 0.5px; }
-.nav-sep { width: 32px; height: 1px; background: var(--border); margin: 4px 0; }
+.nav-btn svg { width: 20px; height: 20px; }
+.nav-label {
+  font-size: 9px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.nav-sep {
+  width: 36px; height: 1px;
+  background: rgba(139,92,246,0.15);
+  margin: 4px 0;
+}
 
 /* ---- MAIN ---- */
 #main {
   position: fixed;
   top: var(--header-h); left: var(--sidebar-w); right: 0; bottom: 0;
   overflow-y: auto;
-  padding: 20px;
+  padding: 24px;
   scrollbar-width: thin;
-  scrollbar-color: var(--bg3) transparent;
+  scrollbar-color: var(--border) transparent;
+  z-index: 1;
 }
-#main::-webkit-scrollbar { width: 4px; }
+#main::-webkit-scrollbar { width: 5px; }
 #main::-webkit-scrollbar-track { background: transparent; }
-#main::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+#main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 .panel { display: none; }
 .panel.active { display: block; }
 
 /* ---- GRID ---- */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 
 /* ---- CARD ---- */
 .card {
-  background: var(--bg1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 16px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(139,92,246,0.07);
 }
 .card::before {
   content: '';
   position: absolute; top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-  opacity: 0.4;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-radius: 16px 16px 0 0;
 }
 .card-title {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 13px; font-weight: 600;
-  color: var(--cyan);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 14px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px; font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 16px;
   display: flex; align-items: center; gap: 8px;
 }
 .card-title::before {
   content: '';
-  width: 3px; height: 14px;
-  background: var(--cyan);
-  box-shadow: var(--cyan-glow);
-  border-radius: 1px;
+  width: 10px; height: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 /* ---- BUTTONS ---- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 7px 16px;
-  border: 1px solid;
-  border-radius: 3px;
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 13px; font-weight: 600;
-  letter-spacing: 1px;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 999px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px; font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  background: transparent;
-  text-transform: uppercase;
+  letter-spacing: 0.2px;
 }
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
+
 .btn-cyan {
-  border-color: var(--cyan); color: var(--cyan);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(139,92,246,0.30);
 }
-.btn-cyan:hover {
-  background: var(--cyan-dim);
-  box-shadow: var(--cyan-glow);
-}
+.btn-cyan:hover { box-shadow: 0 6px 18px rgba(139,92,246,0.40); }
+
 .btn-pink {
-  border-color: var(--pink); color: var(--pink);
+  background: var(--secondary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(236,72,153,0.28);
 }
-.btn-pink:hover {
-  background: var(--pink-dim);
-  box-shadow: var(--pink-glow);
-}
+.btn-pink:hover { box-shadow: 0 6px 18px rgba(236,72,153,0.38); }
+
 .btn-green {
-  border-color: var(--green); color: var(--green);
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(16,185,129,0.28);
 }
-.btn-green:hover {
-  background: var(--green-dim);
-  box-shadow: 0 0 8px rgba(57,255,20,0.4);
-}
+.btn-green:hover { box-shadow: 0 6px 18px rgba(16,185,129,0.38); }
+
 .btn-gold {
-  border-color: var(--gold); color: var(--gold);
+  background: var(--gold);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(245,158,11,0.28);
 }
-.btn-gold:hover {
-  background: rgba(255,215,0,0.1);
-  box-shadow: 0 0 8px rgba(255,215,0,0.4);
-}
-.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn-gold:hover { box-shadow: 0 6px 18px rgba(245,158,11,0.38); }
+
+.btn-sm { padding: 5px 14px; font-size: 12px; }
 .btn-full { width: 100%; }
-.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn:disabled { opacity: 0.40; cursor: not-allowed; transform: none; }
 
 /* ---- FORM ---- */
-.form-row { margin-bottom: 12px; }
+.form-row { margin-bottom: 14px; }
 .form-label {
   display: block;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px; color: var(--text-dim);
-  letter-spacing: 1px;
-  margin-bottom: 5px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 11px; color: var(--text-dim);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
   text-transform: uppercase;
 }
 .form-input, .form-select, .form-textarea {
   width: 100%;
-  background: var(--bg0);
-  border: 1px solid var(--border);
-  border-radius: 3px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
   color: var(--text);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 12px;
-  padding: 7px 10px;
+  font-family: 'Noto Sans SC', 'Nunito', sans-serif;
+  font-size: 13px;
+  padding: 8px 12px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus {
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 2px rgba(0,245,255,0.08);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
 }
-.form-select option { background: var(--bg1); }
-.form-textarea { resize: vertical; min-height: 70px; }
-.form-hint { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+.form-select option { background: var(--card); }
+.form-textarea { resize: vertical; min-height: 72px; }
+.form-hint { font-size: 11px; color: var(--text-dim); margin-top: 5px; font-family: 'Nunito', sans-serif; }
 
 /* ---- TABLE ---- */
+.table-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+}
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px; color: var(--text-dim);
-  letter-spacing: 1px; text-transform: uppercase;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--border);
+  font-family: 'Nunito', sans-serif;
+  font-size: 11px; color: var(--text-dim);
+  font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-bottom: 1.5px solid var(--border);
   text-align: left;
 }
 .data-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
 }
-.data-table tr:hover td { background: rgba(0,245,255,0.03); }
+.data-table tr:nth-child(even) td { background: #F5F3FF; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--primary-dim); }
 
-/* ---- TAGS ---- */
+/* ---- TAGS / BADGES ---- */
 .tag {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 2px;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px; letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.2px;
 }
-.tag-cyan { border: 1px solid var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
-.tag-pink { border: 1px solid var(--pink); color: var(--pink); background: var(--pink-dim); }
-.tag-green { border: 1px solid var(--green); color: var(--green); background: var(--green-dim); }
-.tag-gold { border: 1px solid var(--gold); color: var(--gold); background: rgba(255,215,0,0.1); }
-.tag-dim { border: 1px solid var(--border); color: var(--text-dim); }
+.tag-cyan   { background: var(--primary-dim);   color: var(--primary); }
+.tag-pink   { background: var(--secondary-dim); color: var(--secondary); }
+.tag-green  { background: var(--success-dim);   color: var(--success); }
+.tag-gold   { background: var(--gold-dim);      color: var(--gold); }
+.tag-dim    { background: rgba(155,139,180,0.12); color: var(--text-dim); }
 
 /* ---- EVENT FEED ---- */
 #eventFeed {
   height: 280px; overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--bg3) transparent;
+  scrollbar-color: var(--border) transparent;
 }
 #eventFeed::-webkit-scrollbar { width: 3px; }
-#eventFeed::-webkit-scrollbar-thumb { background: var(--bg3); }
+#eventFeed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .event-item {
   display: flex; align-items: flex-start; gap: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(221,214,254,0.5);
   animation: fadeIn 0.3s ease;
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .event-time {
-  font-family: 'Share Tech Mono', monospace;
+  font-family: 'Nunito', sans-serif;
   font-size: 10px; color: var(--text-dim);
-  flex-shrink: 0; padding-top: 1px;
+  flex-shrink: 0; padding-top: 1px; font-weight: 600;
 }
-.event-user { color: var(--cyan); font-weight: 500; margin-right: 4px; }
-.event-text { color: var(--text); }
-.event-gift { color: var(--gold); }
-.event-sc { color: var(--pink); }
-.event-guard { color: var(--green); }
+.event-user  { color: var(--primary); font-weight: 700; margin-right: 4px; }
+.event-text  { color: var(--text); }
+.event-gift  { color: var(--gold); font-weight: 600; }
+.event-sc    { color: var(--secondary); font-weight: 600; }
+.event-guard { color: var(--success); font-weight: 600; }
 
 /* ---- SCOREBOARD ---- */
 .sb-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(221,214,254,0.5);
 }
 .sb-rank {
-  width: 22px; text-align: center;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px; color: var(--text-dim);
+  width: 24px; text-align: center;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px; color: var(--text-dim); font-weight: 700;
 }
-.sb-rank.top { color: var(--gold); font-weight: 700; }
-.sb-name { flex: 1; font-size: 13px; }
-.sb-bar-wrap { width: 100px; height: 4px; background: var(--bg3); border-radius: 2px; }
-.sb-bar { height: 100%; background: var(--cyan); border-radius: 2px; transition: width 0.6s ease; }
+.sb-rank.top { color: var(--gold); }
+.sb-name { flex: 1; font-size: 13px; font-weight: 500; }
+.sb-bar-wrap { width: 100px; height: 6px; background: var(--border); border-radius: 999px; }
+.sb-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 999px; transition: width 0.6s ease; }
 .sb-score {
   width: 50px; text-align: right;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 12px; color: var(--cyan);
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px; color: var(--primary); font-weight: 700;
 }
 
 /* ---- QUIZ PANEL ---- */
 .quiz-q-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
   margin-bottom: 8px;
   cursor: pointer;
   transition: all 0.2s;
+  background: var(--card);
 }
-.quiz-q-row:hover { border-color: var(--cyan); background: var(--cyan-dim); }
-.quiz-q-row.selected { border-color: var(--cyan); background: var(--cyan-dim); box-shadow: var(--cyan-glow); }
+.quiz-q-row:hover { border-color: var(--primary); background: var(--primary-dim); }
+.quiz-q-row.selected { border-color: var(--primary); background: var(--primary-dim); box-shadow: var(--primary-glow); }
 .quiz-q-id {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px; color: var(--text-dim);
-  width: 30px; flex-shrink: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 11px; color: var(--text-dim); font-weight: 700;
+  width: 32px; flex-shrink: 0;
 }
-.quiz-q-text { flex: 1; font-size: 12px; }
+.quiz-q-text { flex: 1; font-size: 13px; }
 .quiz-q-type { flex-shrink: 0; }
 
 /* ---- SC LIST ---- */
 .sc-item {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(221,214,254,0.5);
 }
 .sc-price-badge {
   background: var(--gold);
-  color: var(--bg0);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px; font-weight: 700;
-  padding: 2px 8px; border-radius: 2px;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px; font-weight: 800;
+  padding: 3px 10px; border-radius: 999px;
   flex-shrink: 0;
 }
 .sc-info { flex: 1; }
-.sc-user-name { font-size: 12px; color: var(--cyan); margin-bottom: 2px; }
+.sc-user-name { font-size: 13px; color: var(--primary); font-weight: 700; margin-bottom: 2px; }
 .sc-msg { font-size: 12px; color: var(--text); }
 
 /* ---- QR CODE ---- */
-#qrCanvas { display: block; margin: 0 auto; border: 2px solid var(--cyan); border-radius: 4px; }
+#qrCanvas { display: block; margin: 0 auto; border: 3px solid var(--border); border-radius: 12px; }
 .qr-url {
-  font-family: 'Share Tech Mono', monospace;
+  font-family: 'Nunito', sans-serif;
   font-size: 10px; color: var(--text-dim);
-  text-align: center; margin-top: 8px;
-  word-break: break-all;
+  text-align: center; margin-top: 10px;
+  word-break: break-all; font-weight: 600;
 }
 
 /* ---- COOKIE ROW ---- */
 .cookie-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
   transition: border-color 0.2s;
+  background: var(--bg);
 }
-.cookie-row.active-cookie { border-color: var(--green); }
+.cookie-row.active-cookie { border-color: var(--success); background: var(--success-dim); }
 .cookie-face {
-  width: 32px; height: 32px; border-radius: 50%;
-  border: 1px solid var(--border);
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid var(--border);
   object-fit: cover; flex-shrink: 0;
-  background: var(--bg3);
+  background: var(--border);
 }
 .cookie-info { flex: 1; min-width: 0; }
-.cookie-label { font-size: 12px; font-weight: 500; }
-.cookie-uid { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); }
+.cookie-label { font-size: 13px; font-weight: 700; font-family: 'Nunito', sans-serif; }
+.cookie-uid { font-family: 'Nunito', sans-serif; font-size: 11px; color: var(--text-dim); font-weight: 600; }
 .cookie-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 /* ---- MODAL ---- */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(5,8,16,0.85);
-  backdrop-filter: blur(4px);
+  background: rgba(45,32,64,0.40);
+  backdrop-filter: blur(6px);
   z-index: 500;
   display: none; align-items: center; justify-content: center;
 }
 .modal-overlay.open { display: flex; }
 .modal {
-  background: var(--bg1);
-  border: 1px solid var(--cyan);
-  border-radius: 6px;
-  padding: 24px;
-  width: 480px; max-width: 95vw;
-  box-shadow: var(--cyan-glow), 0 20px 60px rgba(0,0,0,0.8);
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  width: 500px; max-width: 95vw;
+  box-shadow: 0 20px 60px rgba(139,92,246,0.20);
   position: relative;
 }
 .modal-title {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 16px; font-weight: 700;
-  color: var(--cyan); letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 18px; font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 22px;
 }
 .modal-close {
-  position: absolute; top: 16px; right: 16px;
-  background: none; border: none;
+  position: absolute; top: 18px; right: 18px;
+  background: var(--bg); border: none;
   color: var(--text-dim); cursor: pointer;
-  font-size: 18px; line-height: 1;
-  transition: color 0.2s;
+  font-size: 16px; line-height: 1;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
 }
-.modal-close:hover { color: var(--pink); }
-.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.modal-close:hover { background: var(--secondary-dim); color: var(--secondary); }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
 
 /* ---- TOAST ---- */
 #toast {
-  position: fixed; bottom: 24px; right: 24px;
-  background: var(--bg2);
-  border: 1px solid var(--cyan);
-  border-radius: 4px;
-  padding: 10px 16px;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 12px; color: var(--cyan);
-  box-shadow: var(--cyan-glow);
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--primary);
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px; font-weight: 700; color: #fff;
+  box-shadow: 0 8px 24px rgba(139,92,246,0.35);
   z-index: 1000;
-  transform: translateY(20px); opacity: 0;
+  opacity: 0;
   transition: all 0.3s;
   pointer-events: none;
+  white-space: nowrap;
 }
-#toast.show { transform: translateY(0); opacity: 1; }
-#toast.error { border-color: var(--pink); color: var(--pink); box-shadow: var(--pink-glow); }
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+#toast.error { background: var(--error); box-shadow: 0 8px 24px rgba(239,68,68,0.35); }
 
 /* ---- MISC ---- */
-.section-gap { margin-bottom: 16px; }
+.section-gap { margin-bottom: 20px; }
 .flex-row { display: flex; gap: 10px; align-items: center; }
 .flex-1 { flex: 1; }
-.text-dim { color: var(--text-dim); }
-.text-cyan { color: var(--cyan); }
-.text-pink { color: var(--pink); }
-.text-gold { color: var(--gold); }
-.text-green { color: var(--green); }
-.mono { font-family: 'Share Tech Mono', monospace; }
-.mt-8 { margin-top: 8px; }
+.text-dim   { color: var(--text-dim); }
+.text-cyan  { color: var(--primary); }
+.text-pink  { color: var(--secondary); }
+.text-gold  { color: var(--gold); }
+.text-green { color: var(--success); }
+.mono { font-family: 'Nunito', monospace; }
+.mt-8  { margin-top: 8px; }
 .mt-12 { margin-top: 12px; }
 .empty-hint {
-  text-align: center; padding: 24px;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px; color: var(--text-dim);
-  letter-spacing: 1px;
+  text-align: center; padding: 28px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px; color: var(--text-dim);
+  font-weight: 600; letter-spacing: 0.3px;
 }
 </style>
 </head>
@@ -507,16 +529,16 @@ body::before {
 
 <!-- HEADER -->
 <div id="header">
-  <div class="header-logo">LIVE CTRL</div>
+  <div class="header-logo">Live Control</div>
   <div class="header-sep"></div>
   <div class="header-status">
     <div class="status-dot" id="biliDot"></div>
-    <span id="biliStatusText">OFFLINE</span>
+    <span id="biliStatusText">离线</span>
   </div>
   <div class="header-sep"></div>
   <div class="header-status">
     <div class="status-dot live" id="wsDot"></div>
-    <span id="wsStatus">WS CONNECTING</span>
+    <span id="wsStatus">WS 连接中</span>
   </div>
   <div class="header-spacer"></div>
   <div class="header-game-badge" id="gameBadge">QUIZ ACTIVE</div>
@@ -564,25 +586,25 @@ body::before {
     <div>
       <div class="card section-gap">
         <div class="card-title">系统状态</div>
-        <div class="flex-row" style="margin-bottom:10px">
-          <span class="text-dim mono" style="font-size:11px;width:80px">B站连接</span>
-          <span class="tag" id="biliTag">OFFLINE</span>
+        <div class="flex-row" style="margin-bottom:12px">
+          <span class="text-dim" style="font-size:12px;width:80px;font-family:'Nunito',sans-serif;font-weight:600">B站连接</span>
+          <span class="tag" id="biliTag">离线</span>
         </div>
-        <div class="flex-row" style="margin-bottom:10px">
-          <span class="text-dim mono" style="font-size:11px;width:80px">WebSocket</span>
-          <span class="tag tag-green" id="wsTag">CONNECTED</span>
+        <div class="flex-row" style="margin-bottom:12px">
+          <span class="text-dim" style="font-size:12px;width:80px;font-family:'Nunito',sans-serif;font-weight:600">WebSocket</span>
+          <span class="tag tag-green" id="wsTag">已连接</span>
         </div>
         <div class="flex-row">
-          <span class="text-dim mono" style="font-size:11px;width:80px">当前游戏</span>
-          <span class="tag tag-dim" id="activeGameTag">NONE</span>
+          <span class="text-dim" style="font-size:12px;width:80px;font-family:'Nunito',sans-serif;font-weight:600">当前游戏</span>
+          <span class="tag tag-dim" id="activeGameTag">无</span>
         </div>
       </div>
       <div class="card">
         <div class="card-title">快捷操作</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="btn btn-pink btn-full" onclick="stopAll()">STOP ALL GAMES</button>
-          <button class="btn btn-cyan btn-full" onclick="switchPanel('quiz',document.querySelector('[data-panel=quiz]'))">START QUIZ</button>
-          <button class="btn btn-gold btn-full" onclick="switchPanel('vote',document.querySelector('[data-panel=vote]'))">START VOTE</button>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn btn-pink btn-full" onclick="stopAll()">停止所有游戏</button>
+          <button class="btn btn-cyan btn-full" onclick="switchPanel('quiz',document.querySelector('[data-panel=quiz]'))">开始答题</button>
+          <button class="btn btn-gold btn-full" onclick="switchPanel('vote',document.querySelector('[data-panel=vote]'))">开始投票</button>
         </div>
       </div>
     </div>
@@ -596,25 +618,25 @@ body::before {
       <div class="card-title">题库</div>
       <div class="flex-row section-gap">
         <button class="btn btn-cyan btn-sm" onclick="openModal('modalAddQ')">+ 新增题目</button>
-        <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="loadQuestions()">刷新</button>
+        <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="loadQuestions()">刷新</button>
       </div>
-      <div id="questionList"><div class="empty-hint">NO QUESTIONS LOADED</div></div>
+      <div id="questionList"><div class="empty-hint">暂无题目</div></div>
     </div>
     <div>
       <div class="card section-gap">
         <div class="card-title">启动答题</div>
         <div class="form-row">
           <label class="form-label">已选题目</label>
-          <div class="mono" style="font-size:11px;color:var(--text-dim)" id="selectedQInfo">— 未选择 —</div>
+          <div style="font-size:12px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600" id="selectedQInfo">— 未选择 —</div>
         </div>
         <div class="flex-row">
-          <button class="btn btn-green flex-1" id="btnStartQuiz" onclick="startQuiz()" disabled>START QUIZ</button>
-          <button class="btn btn-pink" onclick="stopQuiz()">STOP</button>
+          <button class="btn btn-green flex-1" id="btnStartQuiz" onclick="startQuiz()" disabled>开始答题</button>
+          <button class="btn btn-pink" onclick="stopQuiz()">停止</button>
         </div>
       </div>
       <div class="card">
         <div class="card-title">答题状态</div>
-        <div id="quizStatus" class="mono" style="font-size:11px;color:var(--text-dim)">IDLE</div>
+        <div id="quizStatus" style="font-size:12px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600">空闲</div>
       </div>
     </div>
   </div>
@@ -625,24 +647,24 @@ body::before {
   <div class="grid-2 section-gap">
     <div class="card">
       <div class="card-title">计分板</div>
-      <div id="voteScoreboard"><div class="empty-hint">NO ACTIVE SESSION</div></div>
+      <div id="voteScoreboard"><div class="empty-hint">暂无活跃场次</div></div>
     </div>
     <div>
       <div class="card section-gap">
         <div class="card-title">控制</div>
         <div class="flex-row section-gap">
-          <button class="btn btn-green flex-1" onclick="startVote()">START VOTE</button>
-          <button class="btn btn-pink" onclick="stopVote()">STOP</button>
-          <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="resetVote()">RESET</button>
+          <button class="btn btn-green flex-1" onclick="startVote()">开始投票</button>
+          <button class="btn btn-pink" onclick="stopVote()">停止</button>
+          <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="resetVote()">重置</button>
         </div>
         <div class="form-row">
-          <label class="form-label">Session ID (可选)</label>
+          <label class="form-label">Session ID（可选）</label>
           <input class="form-input" id="voteSessionId" placeholder="留空自动生成">
         </div>
       </div>
       <div class="card">
         <div class="card-title">投票配置</div>
-        <div id="voteConfig" class="mono" style="font-size:11px;color:var(--text-dim)">加载中...</div>
+        <div id="voteConfig" style="font-size:12px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600">加载中...</div>
       </div>
     </div>
   </div>
@@ -655,13 +677,13 @@ body::before {
       <div class="card-title">手动触发礼物</div>
       <div class="form-row">
         <label class="form-label">礼物名称</label>
-        <input class="form-input" id="giftTriggerName" placeholder="e.g. 辣条">
+        <input class="form-input" id="giftTriggerName" placeholder="例如：辣条">
       </div>
-      <button class="btn btn-gold btn-full" onclick="triggerGift()">TRIGGER GIFT</button>
+      <button class="btn btn-gold btn-full" onclick="triggerGift()">触发礼物</button>
     </div>
     <div class="card">
       <div class="card-title">礼物触发配置</div>
-      <div class="mono text-dim" style="font-size:11px">礼物触发规则在 config.yaml 中配置</div>
+      <div style="font-size:12px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600">礼物触发规则在 config.yaml 中配置</div>
     </div>
   </div>
 </div>
@@ -672,14 +694,14 @@ body::before {
     <div class="card">
       <div class="card-title">SC 配置</div>
       <div class="form-row">
-        <label class="form-label">最低金额阈值 (元)</label>
+        <label class="form-label">最低金额阈值（元）</label>
         <input class="form-input" id="scMinPrice" type="number" placeholder="30">
       </div>
-      <button class="btn btn-cyan btn-full" onclick="saveScConfig()">SAVE CONFIG</button>
+      <button class="btn btn-cyan btn-full" onclick="saveScConfig()">保存配置</button>
     </div>
     <div class="card">
       <div class="card-title">SC 记录</div>
-      <div id="scList"><div class="empty-hint">NO SC RECEIVED</div></div>
+      <div id="scList"><div class="empty-hint">暂无 SC</div></div>
     </div>
   </div>
 </div>
@@ -689,7 +711,7 @@ body::before {
   <div class="grid-2 section-gap">
     <div class="card">
       <div class="card-title">账号管理</div>
-      <div id="cookieList"><div class="empty-hint">LOADING...</div></div>
+      <div id="cookieList"><div class="empty-hint">加载中...</div></div>
       <div class="mt-12">
         <button class="btn btn-cyan btn-full" onclick="openModal('modalAddCookie')">+ 添加账号</button>
       </div>
@@ -700,21 +722,21 @@ body::before {
       <div class="qr-url" id="qrUrl">—</div>
       <div class="mt-12 flex-row" style="justify-content:center;gap:10px">
         <button class="btn btn-cyan btn-sm" onclick="genQR()">生成二维码</button>
-        <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="pollQR()">检查状态</button>
+        <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="pollQR()">检查状态</button>
       </div>
-      <div class="mt-8 mono text-dim" style="font-size:10px;text-align:center" id="qrStatus">—</div>
+      <div class="mt-8" style="font-size:11px;text-align:center;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600" id="qrStatus">—</div>
     </div>
   </div>
   <div class="section-gap">
     <div class="card">
       <div class="card-title">弹幕 Token（手动）</div>
-      <div class="text-dim" style="font-size:12px;margin-bottom:12px;line-height:1.6">
+      <div class="text-dim" style="font-size:13px;margin-bottom:14px;line-height:1.7;font-family:'Noto Sans SC',sans-serif">
         服务器 IP 被 B站 风控时，getDanmuInfo 返回 -352，无法自动获取 token。<br>
-        解决方法：在浏览器打开直播间，F12 → Network → 搜索 <span class="mono" style="color:var(--cyan)">getDanmuInfo</span>，复制响应中的 <span class="mono" style="color:var(--cyan)">token</span> 字段粘贴到此处。
+        解决方法：在浏览器打开直播间，F12 → Network → 搜索 <span style="color:var(--primary);font-weight:700;font-family:monospace">getDanmuInfo</span>，复制响应中的 <span style="color:var(--primary);font-weight:700;font-family:monospace">token</span> 字段粘贴到此处。
       </div>
-      <div class="flex-row" style="gap:8px">
+      <div class="flex-row" style="gap:10px">
         <input class="form-input" id="manualDanmakuToken" placeholder="粘贴 token..." style="flex:1;font-family:monospace;font-size:12px">
-        <button class="btn btn-cyan btn-sm" onclick="setDanmakuToken()">SET</button>
+        <button class="btn btn-cyan btn-sm" onclick="setDanmakuToken()">设置</button>
       </div>
     </div>
   </div>
@@ -740,24 +762,24 @@ body::before {
       <textarea class="form-textarea" id="qText" placeholder="输入题目..."></textarea>
     </div>
     <div class="form-row">
-      <label class="form-label">选项 (每行一个，共4个)</label>
+      <label class="form-label">选项（每行一个，共4个）</label>
       <textarea class="form-textarea" id="qOptions" placeholder="选项A&#10;选项B&#10;选项C&#10;选项D"></textarea>
     </div>
     <div class="form-row">
-      <label class="form-label">正确答案 (0=A, 1=B, 2=C, 3=D)</label>
+      <label class="form-label">正确答案（0=A, 1=B, 2=C, 3=D）</label>
       <input class="form-input" id="qAnswer" type="number" min="0" max="3" value="0">
     </div>
     <div class="form-row">
-      <label class="form-label">解析 (可选)</label>
+      <label class="form-label">解析（可选）</label>
       <textarea class="form-textarea" id="qExplanation" placeholder="答案解析..."></textarea>
     </div>
     <div class="form-row">
-      <label class="form-label">媒体路径 (可选)</label>
+      <label class="form-label">媒体路径（可选）</label>
       <input class="form-input" id="qMedia" placeholder="/media/image.jpg">
     </div>
     <div class="modal-footer">
-      <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="closeModal('modalAddQ')">CANCEL</button>
-      <button class="btn btn-cyan btn-sm" onclick="addQuestion()">SAVE</button>
+      <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="closeModal('modalAddQ')">取消</button>
+      <button class="btn btn-cyan btn-sm" onclick="addQuestion()">保存</button>
     </div>
   </div>
 </div>
@@ -776,8 +798,8 @@ body::before {
       <div class="form-hint">从浏览器开发者工具复制完整 Cookie</div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="closeModal('modalAddCookie')">CANCEL</button>
-      <button class="btn btn-cyan btn-sm" onclick="addCookie()">SAVE</button>
+      <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="closeModal('modalAddCookie')">取消</button>
+      <button class="btn btn-cyan btn-sm" onclick="addCookie()">保存</button>
     </div>
   </div>
 </div>

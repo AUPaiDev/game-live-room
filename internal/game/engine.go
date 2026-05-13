@@ -3,6 +3,7 @@ package game
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math"
 	"sync"
@@ -70,6 +71,7 @@ func (e *Engine) HandleLiveMessage(msg bilibili.LiveMessage) {
 	switch msg.Cmd {
 	case "DANMU_MSG":
 		e.quiz.HandleDanmaku(msg)
+		e.broadcastDanmaku(msg)
 	case "SEND_GIFT":
 		e.gift.HandleGift(msg)
 		e.vote.HandleGift(msg)
@@ -173,4 +175,17 @@ func (e *Engine) setActiveGame(name string) {
 	e.mu.Lock()
 	e.activeGame = name
 	e.mu.Unlock()
+}
+
+func (e *Engine) broadcastDanmaku(msg bilibili.LiveMessage) {
+	payload, _ := json.Marshal(map[string]interface{}{
+		"cmd":      "DANMU_MSG",
+		"uid":      msg.UID,
+		"username": msg.Username,
+		"text":     msg.Text,
+	})
+	e.hub.Broadcast(hub.Message{
+		Type:    "live_event",
+		Payload: json.RawMessage(payload),
+	})
 }
