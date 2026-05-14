@@ -523,72 +523,6 @@ body::before {
   font-size: 12px; color: var(--text-dim);
   font-weight: 600; letter-spacing: 0.3px;
 }
-/* ---- OVERLAY LAYOUT PANEL ---- */
-.ovl-preview-module {
-  position: absolute;
-  background: rgba(139,92,246,0.18);
-  border: 1px solid var(--primary);
-  border-radius: 3px;
-  padding: 2px 6px;
-  font-size: 10px; font-weight: 700;
-  color: var(--primary);
-  font-family: 'Nunito', sans-serif;
-  white-space: nowrap;
-  cursor: default;
-  transition: left 0.3s ease, top 0.3s ease;
-}
-.ovl-module-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-.ovl-module-row:last-child { border-bottom: none; }
-.ovl-module-name {
-  width: 72px; font-size: 12px; font-weight: 700;
-  color: var(--text); font-family: 'Nunito', sans-serif;
-  flex-shrink: 0;
-}
-.ovl-toggle {
-  width: 36px; height: 20px; border-radius: 10px;
-  background: var(--border); border: none; cursor: pointer;
-  position: relative; transition: background 0.2s; flex-shrink: 0;
-}
-.ovl-toggle.on { background: var(--primary); }
-.ovl-toggle::after {
-  content: '';
-  position: absolute; top: 3px; left: 3px;
-  width: 14px; height: 14px; border-radius: 50%;
-  background: #fff; transition: left 0.2s;
-}
-.ovl-toggle.on::after { left: 19px; }
-.ovl-preset-group { display: flex; gap: 4px; flex-wrap: wrap; }
-.ovl-preset-btn {
-  padding: 3px 8px; border-radius: 999px;
-  border: 1.5px solid var(--border);
-  background: var(--bg); color: var(--text-dim);
-  font-size: 10px; font-weight: 700; cursor: pointer;
-  font-family: 'Nunito', sans-serif;
-  transition: all 0.15s;
-}
-.ovl-preset-btn.active {
-  border-color: var(--primary);
-  background: var(--primary-dim);
-  color: var(--primary);
-}
-.ovl-theme-group { display: flex; gap: 4px; margin-left: auto; }
-.ovl-theme-btn {
-  padding: 3px 8px; border-radius: 999px;
-  border: 1.5px solid var(--border);
-  background: var(--bg); color: var(--text-dim);
-  font-size: 10px; font-weight: 700; cursor: pointer;
-  font-family: 'Nunito', sans-serif;
-  transition: all 0.15s;
-}
-.ovl-theme-btn.active {
-  border-color: var(--secondary);
-  background: var(--secondary-dim);
-  color: var(--secondary);
-}
 </style>
 </head>
 <body>
@@ -636,10 +570,6 @@ body::before {
   <button class="nav-btn" data-panel="auth" onclick="switchPanel('auth',this)" title="账号">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     <span class="nav-label">AUTH</span>
-  </button>
-  <button class="nav-btn" data-panel="overlay" onclick="switchPanel('overlay',this)" title="Overlay 布局">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-    <span class="nav-label">OVL</span>
   </button>
 </div>
 
@@ -807,30 +737,6 @@ body::before {
       <div class="flex-row" style="gap:10px">
         <input class="form-input" id="manualDanmakuToken" placeholder="粘贴 token..." style="flex:1;font-family:monospace;font-size:12px">
         <button class="btn btn-cyan btn-sm" onclick="setDanmakuToken()">设置</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="panel" id="panel-overlay">
-  <div class="section-gap">
-    <div class="card">
-      <div class="card-title">Overlay 模块编排</div>
-      <!-- 16:9 preview canvas (480×270, scale 1:4 from 1920×1080) -->
-      <div style="position:relative;width:480px;height:270px;background:#0a0a14;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;flex-shrink:0" id="ovlPreview">
-        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 17px,rgba(139,92,246,0.04) 17px,rgba(139,92,246,0.04) 18px),repeating-linear-gradient(90deg,transparent,transparent 17px,rgba(139,92,246,0.04) 17px,rgba(139,92,246,0.04) 18px);pointer-events:none"></div>
-        <div class="ovl-preview-module" id="prev-gift-alert"     style="left:376px;top:9px">礼物提醒</div>
-        <div class="ovl-preview-module" id="prev-sc-alert"       style="left:371px;top:33px">SC</div>
-        <div class="ovl-preview-module" id="prev-scoreboard"     style="left:396px;top:60px">计分板</div>
-        <div class="ovl-preview-module" id="prev-quiz-display"   style="left:150px;top:90px">答题</div>
-        <div class="ovl-preview-module" id="prev-quiz-result"    style="left:163px;top:90px">结果</div>
-        <div class="ovl-preview-module" id="prev-danmaku-wall"   style="left:9px;top:166px">弹幕墙</div>
-      </div>
-      <!-- Per-module rows -->
-      <div id="ovlModuleRows"></div>
-      <div class="mt-12 flex-row" style="gap:10px">
-        <button class="btn btn-cyan" onclick="applyOverlayLayout()">应用到 Overlay</button>
-        <button class="btn" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="loadOverlayLayout()">重新加载</button>
       </div>
     </div>
   </div>
@@ -1345,112 +1251,8 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ---- OVERLAY LAYOUT ----
-const OVL_MODULES = [
-  { id: 'gift-alert',   label: '礼物提醒' },
-  { id: 'sc-alert',     label: 'SC' },
-  { id: 'scoreboard',   label: '计分板' },
-  { id: 'quiz-display', label: '答题' },
-  { id: 'quiz-result',  label: '结果' },
-  { id: 'danmaku-wall', label: '弹幕墙' },
-];
-const OVL_PRESETS = {
-  'top-left':     { x: 36,   y: 36  },
-  'top-right':    { x: 1504, y: 36  },
-  'center':       { x: 600,  y: 360 },
-  'right':        { x: 1584, y: 240 },
-  'bottom-left':  { x: 36,   y: 664 },
-  'bottom-right': { x: 1504, y: 664 },
-};
-// Scale factor: preview is 480×270, canvas is 1920×1080 → 1:4
-const OVL_SCALE = 480 / 1920;
-
-let ovlConfig = null;
-
-function loadOverlayLayout() {
-  fetch('/api/overlay/layout')
-    .then(r => r.json())
-    .then(cfg => { ovlConfig = cfg; renderOvlRows(); updateOvlPreview(); })
-    .catch(() => showToast('加载 Overlay 配置失败', true));
-}
-
-function renderOvlRows() {
-  if (!ovlConfig) return;
-  const container = document.getElementById('ovlModuleRows');
-  container.innerHTML = OVL_MODULES.map(m => {
-    const mc = ovlConfig.modules[m.id] || { visible: false, position: { preset: 'top-left', x: 36, y: 36 }, theme: 'cyberpunk' };
-    const preset = mc.position.preset || 'custom';
-    const theme = mc.theme || 'cyberpunk';
-    const presetBtns = Object.keys(OVL_PRESETS).map(p =>
-      `<button class="ovl-preset-btn${preset===p?' active':''}" onclick="setOvlPreset('${m.id}','${p}')">${p}</button>`
-    ).join('');
-    const themeBtns = ['cyberpunk','warm','glass'].map(t =>
-      `<button class="ovl-theme-btn${theme===t?' active':''}" onclick="setOvlTheme('${m.id}','${t}')">${t}</button>`
-    ).join('');
-    return `<div class="ovl-module-row" id="ovlrow-${m.id}">
-      <div class="ovl-module-name">${m.label}</div>
-      <button class="ovl-toggle${mc.visible?' on':''}" onclick="toggleOvlVisible('${m.id}',this)" title="显示/隐藏"></button>
-      <div class="ovl-preset-group">${presetBtns}</div>
-      <div class="ovl-theme-group">${themeBtns}</div>
-    </div>`;
-  }).join('');
-}
-
-function updateOvlPreview() {
-  if (!ovlConfig) return;
-  OVL_MODULES.forEach(m => {
-    const mc = ovlConfig.modules[m.id];
-    if (!mc) return;
-    const el = document.getElementById('prev-' + m.id);
-    if (!el) return;
-    el.style.left = Math.round(mc.position.x * OVL_SCALE) + 'px';
-    el.style.top  = Math.round(mc.position.y * OVL_SCALE) + 'px';
-    el.style.opacity = mc.visible ? '1' : '0.35';
-  });
-}
-
-function toggleOvlVisible(id, btn) {
-  if (!ovlConfig || !ovlConfig.modules[id]) return;
-  ovlConfig.modules[id].visible = !ovlConfig.modules[id].visible;
-  btn.classList.toggle('on', ovlConfig.modules[id].visible);
-  updateOvlPreview();
-}
-
-function setOvlPreset(id, preset) {
-  if (!ovlConfig || !ovlConfig.modules[id]) return;
-  const pos = OVL_PRESETS[preset];
-  ovlConfig.modules[id].position = { preset, x: pos.x, y: pos.y };
-  // Update button states in this row
-  const row = document.getElementById('ovlrow-' + id);
-  row.querySelectorAll('.ovl-preset-btn').forEach(b => b.classList.toggle('active', b.textContent === preset));
-  updateOvlPreview();
-}
-
-function setOvlTheme(id, theme) {
-  if (!ovlConfig || !ovlConfig.modules[id]) return;
-  ovlConfig.modules[id].theme = theme;
-  const row = document.getElementById('ovlrow-' + id);
-  row.querySelectorAll('.ovl-theme-btn').forEach(b => b.classList.toggle('active', b.textContent === theme));
-}
-
-async function applyOverlayLayout() {
-  if (!ovlConfig) return;
-  try {
-    const resp = await fetch('/api/overlay/layout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify(ovlConfig),
-    });
-    if (!resp.ok) throw new Error(await resp.text());
-    showToast('Overlay 配置已应用');
-  } catch (e) {
-    showToast('应用失败: ' + e.message, true);
-  }
-}
-
 // ---- INIT ----
 connectWS();
-loadOverlayLayout();
 </script>
 </body>
 </html>

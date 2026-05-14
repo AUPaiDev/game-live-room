@@ -17,6 +17,7 @@ import (
 	"game-live-room/internal/game"
 	"game-live-room/internal/hub"
 	"game-live-room/internal/model"
+	"game-live-room/internal/overlay"
 	"game-live-room/internal/store"
 
 	"go.uber.org/zap"
@@ -51,6 +52,11 @@ func main() {
 	h := hub.New()
 	engine := game.New(st, h, &cfg.Game, logger)
 
+	overlayMgr := overlay.New(st, h)
+	if err := overlayMgr.Load(); err != nil {
+		logger.Fatal("load overlay config", zap.Error(err))
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -84,7 +90,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
-		Handler: buildRouter(h, engine, st, danmakuClient, logger, cfg.Bilibili.UserAgent, cfg.Server.AdminToken),
+		Handler: buildRouter(h, engine, overlayMgr, st, danmakuClient, logger, cfg.Bilibili.UserAgent, cfg.Server.AdminToken),
 	}
 
 	go func() {
@@ -108,7 +114,7 @@ func main() {
 	}
 }
 
-func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, dc *bilibili.DanmakuClient, logger *zap.Logger, userAgent string, adminToken string) http.Handler {
+func buildRouter(h *hub.Hub, engine *game.Engine, overlayMgr *overlay.Manager, st *store.Store, dc *bilibili.DanmakuClient, logger *zap.Logger, userAgent string, adminToken string) http.Handler {
 	mux := http.NewServeMux()
 
 	// /ws: overlay connections are unauthenticated; admin connections require token.
@@ -134,6 +140,16 @@ func buildRouter(h *hub.Hub, engine *game.Engine, st *store.Store, dc *bilibili.
 
 	mux.Handle("/admin/", http.StripPrefix("/admin/", http.FileServer(http.Dir("web/admin"))))
 	mux.Handle("/overlay/", http.StripPrefix("/overlay/", http.FileServer(http.Dir("web/overlay"))))
+
+	// Public: overlay fetches layout config on connect (no auth required).
+	mux.HandleFunc("/api/overlay/layout", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			writeJSON(w, http.StatusOK, overlayMgr.Get())
+			return
+		}
+		// POST requires admin auth — delegate to apiMux below.
+		adminAuth(adminToken, http.HandlerFunc(handleOverlayLayout(overlayMgr))).ServeHTTP(w, r)
+	})
 
 	// All /api/* routes are protected by adminAuth.
 	apiMux := http.NewServeMux()
@@ -395,6 +411,25 @@ func handleSCConfig(engine *game.Engine) http.HandlerFunc {
 			return
 		}
 		engine.SetSCMinPrice(body.MinPrice)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
+}
+
+func handleOverlayLayout(mgr *overlay.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var cfg overlay.LayoutConfig
+		if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(err))
+			return
+		}
+		if err := mgr.Update(cfg); err != nil {
+			writeJSON(w, http.StatusInternalServerError, errResp(err))
+			return
+		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
 }

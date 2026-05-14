@@ -3,161 +3,170 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Control ✦ Pastel</title>
+<title>LIVE CTRL_</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 :root {
-  --bg:            #F8F4FF;
-  --sidebar:       #EDE8FF;
-  --card:          #FFFFFF;
-  --primary:       #8B5CF6;
-  --primary-dim:   rgba(139,92,246,0.12);
-  --primary-glow:  0 4px 16px rgba(139,92,246,0.18);
-  --secondary:     #EC4899;
-  --secondary-dim: rgba(236,72,153,0.12);
-  --success:       #10B981;
-  --success-dim:   rgba(16,185,129,0.12);
-  --error:         #EF4444;
-  --error-dim:     rgba(239,68,68,0.12);
-  --gold:          #F59E0B;
-  --gold-dim:      rgba(245,158,11,0.12);
-  --text:          #2D2040;
-  --text-dim:      #9B8BB4;
-  --border:        #DDD6FE;
-  --sidebar-w:     80px;
-  --header-h:      56px;
+  --lime: #AAFF00;
+  --lime-dim: #88CC00;
+  --red: #FF3333;
+  --bg: #0D0D0D;
+  --sidebar-bg: #000000;
+  --card-bg: #111111;
+  --border: #2E2E2E;
+  --text: #E8E8E8;
+  --text-dim: #666666;
+  --sidebar-w: 72px;
+  --header-h: 48px;
+  --font: 'JetBrains Mono', 'Courier New', monospace;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
 
 html, body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Noto Sans SC', 'Nunito', sans-serif;
-  font-size: 13px;
+  font-family: var(--font);
+  font-size: 12px;
   overflow: hidden;
 }
 
-/* Dot-grid background */
+/* Scanlines */
 body::before {
   content: '';
   position: fixed; inset: 0;
-  background: radial-gradient(circle, rgba(139,92,246,0.07) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.12) 3px,
+    rgba(0,0,0,0.12) 4px
+  );
   pointer-events: none;
-  z-index: 0;
+  z-index: 9999;
+}
+
+/* Blinking cursor animation */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 /* ---- HEADER ---- */
 #header {
   position: fixed; top: 0; left: 0; right: 0;
   height: var(--header-h);
-  background: var(--card);
-  box-shadow: 0 2px 16px rgba(139,92,246,0.08);
+  background: #000;
+  border-bottom: 1px solid rgba(170,255,0,0.3);
   display: flex; align-items: center;
-  padding: 0 24px 0 calc(var(--sidebar-w) + 24px);
-  z-index: 100;
+  padding: 0 16px;
   gap: 16px;
+  z-index: 100;
 }
 
 .header-logo {
-  font-family: 'Nunito', sans-serif;
-  font-size: 20px; font-weight: 800;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: 0.5px;
-  margin-right: 4px;
+  font-family: var(--font);
+  font-size: 14px; font-weight: 700;
+  color: var(--lime);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.header-sep { width: 1px; height: 24px; background: var(--border); }
-
-.header-status {
-  display: flex; align-items: center; gap: 8px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 12px; color: var(--text-dim); font-weight: 600;
+.header-logo .cursor {
+  display: inline-block;
+  animation: blink 1s step-end infinite;
 }
 
-.status-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--error);
-  transition: background 0.3s;
-}
-.status-dot.live {
-  background: var(--success);
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity: 1; } 50% { opacity: 0.6; }
+.header-sep {
+  width: 1px; height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
 }
 
 .header-spacer { flex: 1; }
 
+.header-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.status-dot {
+  width: 8px; height: 8px;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.status-dot.live { background: var(--lime); }
+.status-dot.error { background: var(--red); }
+
 .header-game-badge {
-  font-family: 'Nunito', sans-serif;
-  font-size: 12px; font-weight: 700;
-  padding: 5px 16px;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: #fff;
-  border-radius: 999px;
-  letter-spacing: 0.3px;
+  font-size: 10px; font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
   display: none;
 }
-.header-game-badge.active { display: block; }
 
-#wsStatus {
-  font-family: 'Nunito', sans-serif;
-  font-size: 12px; color: var(--text-dim); font-weight: 600;
+.header-game-badge.active {
+  display: block;
+  color: var(--lime);
+  border-color: var(--lime);
 }
 
 /* ---- SIDEBAR ---- */
 #sidebar {
   position: fixed; top: var(--header-h); left: 0; bottom: 0;
   width: var(--sidebar-w);
-  background: var(--sidebar);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   align-items: center;
-  padding: 16px 0;
-  gap: 6px;
-  z-index: 100;
+  padding: 12px 0;
+  gap: 2px;
+  z-index: 90;
+  overflow-y: auto;
 }
 
 .nav-btn {
-  width: 58px; height: 58px;
-  border: none;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
+  width: 56px;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 4px;
-  transition: all 0.2s;
+  padding: 10px 4px;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.15s, border-color 0.15s;
 }
+
+.nav-btn svg { width: 18px; height: 18px; stroke: currentColor; }
+
 .nav-btn:hover {
-  color: var(--primary);
-  background: rgba(139,92,246,0.10);
+  color: var(--lime);
+  border-color: var(--lime);
 }
+
 .nav-btn.active {
-  color: var(--primary);
-  background: var(--card);
-  box-shadow: 0 4px 14px rgba(139,92,246,0.20);
+  color: var(--lime);
+  border-color: var(--lime);
+  background: rgba(170,255,0,0.05);
 }
-.nav-btn svg { width: 20px; height: 20px; }
-.nav-label {
-  font-size: 9px;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-}
+
 .nav-sep {
-  width: 36px; height: 1px;
-  background: rgba(139,92,246,0.15);
-  margin: 4px 0;
+  width: 40px; height: 1px;
+  background: var(--border);
+  margin: 6px 0;
 }
 
 /* ---- MAIN ---- */
@@ -165,446 +174,361 @@ body::before {
   position: fixed;
   top: var(--header-h); left: var(--sidebar-w); right: 0; bottom: 0;
   overflow-y: auto;
-  padding: 24px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-  z-index: 1;
+  padding: 20px;
 }
-#main::-webkit-scrollbar { width: 5px; }
-#main::-webkit-scrollbar-track { background: transparent; }
-#main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
+/* ---- PANELS ---- */
 .panel { display: none; }
 .panel.active { display: block; }
 
 /* ---- GRID ---- */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
 
-/* ---- CARD ---- */
+/* ---- CARDS ---- */
 .card {
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(139,92,246,0.07);
+  background: var(--card-bg);
+  border-left: 2px solid var(--lime);
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 16px;
 }
-.card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
-  border-radius: 16px 16px 0 0;
-}
+
 .card-title {
-  font-family: 'Nunito', sans-serif;
-  font-size: 14px; font-weight: 700;
-  color: var(--primary);
-  margin-bottom: 16px;
-  display: flex; align-items: center; gap: 8px;
+  font-size: 10px; font-weight: 700;
+  color: var(--lime);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
 }
-.card-title::before {
-  content: '';
-  width: 10px; height: 10px;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  border-radius: 3px;
-  flex-shrink: 0;
+
+/* ---- TAGS ---- */
+.tag {
+  display: inline-block;
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  text-transform: uppercase;
 }
+
+.tag-green { border-color: var(--lime); color: var(--lime); }
+.tag-cyan  { border-color: var(--lime); color: var(--lime); }
+.tag-pink  { border-color: var(--red); color: var(--red); }
+.tag-dim   { border-color: var(--border); color: var(--text-dim); }
 
 /* ---- BUTTONS ---- */
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 8px 20px;
-  border: none;
-  border-radius: 999px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 13px; font-weight: 700;
+  font-family: var(--font);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--lime);
+  color: var(--lime);
   cursor: pointer;
-  transition: all 0.2s;
-  letter-spacing: 0.2px;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
 }
-.btn:hover { transform: translateY(-2px); }
-.btn:active { transform: translateY(0); }
 
-.btn-cyan {
-  background: var(--primary);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(139,92,246,0.30);
+.btn:hover:not(:disabled) {
+  background: var(--lime);
+  color: #000;
 }
-.btn-cyan:hover { box-shadow: 0 6px 18px rgba(139,92,246,0.40); }
 
-.btn-pink {
-  background: var(--secondary);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(236,72,153,0.28);
+.btn:disabled {
+  border-color: var(--border);
+  color: var(--text-dim);
+  cursor: not-allowed;
 }
-.btn-pink:hover { box-shadow: 0 6px 18px rgba(236,72,153,0.38); }
 
-.btn-green {
-  background: var(--success);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(16,185,129,0.28);
-}
-.btn-green:hover { box-shadow: 0 6px 18px rgba(16,185,129,0.38); }
-
-.btn-gold {
-  background: var(--gold);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(245,158,11,0.28);
-}
-.btn-gold:hover { box-shadow: 0 6px 18px rgba(245,158,11,0.38); }
-
-.btn-sm { padding: 5px 14px; font-size: 12px; }
+.btn-sm { padding: 5px 10px; font-size: 9px; }
 .btn-full { width: 100%; }
-.btn:disabled { opacity: 0.40; cursor: not-allowed; transform: none; }
 
-/* ---- FORM ---- */
-.form-row { margin-bottom: 14px; }
+.btn-green { border-color: var(--lime); color: var(--lime); }
+.btn-green:hover:not(:disabled) { background: var(--lime); color: #000; }
+
+.btn-cyan { border-color: var(--lime); color: var(--lime); }
+.btn-cyan:hover:not(:disabled) { background: var(--lime); color: #000; }
+
+.btn-pink { border-color: var(--red); color: var(--red); }
+.btn-pink:hover:not(:disabled) { background: var(--red); color: #fff; }
+
+.btn-gold { border-color: var(--lime-dim); color: var(--lime-dim); }
+.btn-gold:hover:not(:disabled) { background: var(--lime-dim); color: #000; }
+
+/* ---- FORMS ---- */
+.form-row { margin-bottom: 12px; }
+
 .form-label {
   display: block;
-  font-family: 'Nunito', sans-serif;
-  font-size: 11px; color: var(--text-dim);
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
+  font-size: 9px; font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 2px;
   text-transform: uppercase;
+  margin-bottom: 5px;
 }
+
 .form-input, .form-select, .form-textarea {
   width: 100%;
-  background: var(--bg);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
+  background: #000;
+  border: 1px solid var(--border);
   color: var(--text);
-  font-family: 'Noto Sans SC', 'Nunito', sans-serif;
-  font-size: 13px;
-  padding: 8px 12px;
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 7px 10px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s;
+  appearance: none;
 }
-.form-input:focus, .form-select:focus, .form-textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
-}
-.form-select option { background: var(--card); }
-.form-textarea { resize: vertical; min-height: 72px; }
-.form-hint { font-size: 11px; color: var(--text-dim); margin-top: 5px; font-family: 'Nunito', sans-serif; }
 
-/* ---- TABLE ---- */
-.table-wrap {
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1.5px solid var(--border);
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--lime);
 }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  font-family: 'Nunito', sans-serif;
-  font-size: 11px; color: var(--text-dim);
-  font-weight: 700;
-  letter-spacing: 0.5px; text-transform: uppercase;
-  padding: 8px 12px;
-  background: var(--bg);
-  border-bottom: 1.5px solid var(--border);
-  text-align: left;
-}
-.data-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-  font-size: 13px;
-}
-.data-table tr:nth-child(even) td { background: #F5F3FF; }
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover td { background: var(--primary-dim); }
 
-/* ---- TAGS / BADGES ---- */
-.tag {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 11px; font-weight: 700;
-  letter-spacing: 0.2px;
+.form-textarea { min-height: 80px; resize: vertical; }
+
+.form-hint {
+  font-size: 9px; color: var(--text-dim);
+  margin-top: 4px; letter-spacing: 0.5px;
 }
-.tag-cyan   { background: var(--primary-dim);   color: var(--primary); }
-.tag-pink   { background: var(--secondary-dim); color: var(--secondary); }
-.tag-green  { background: var(--success-dim);   color: var(--success); }
-.tag-gold   { background: var(--gold-dim);      color: var(--gold); }
-.tag-dim    { background: rgba(155,139,180,0.12); color: var(--text-dim); }
 
 /* ---- EVENT FEED ---- */
 #eventFeed {
-  height: 280px; overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  max-height: 360px;
+  overflow-y: auto;
+  font-size: 11px;
 }
-#eventFeed::-webkit-scrollbar { width: 3px; }
-#eventFeed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
 .event-item {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(221,214,254,0.5);
-  animation: fadeIn 0.3s ease;
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(46,46,46,0.5);
+  line-height: 1.4;
 }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
 .event-time {
-  font-family: 'Nunito', sans-serif;
-  font-size: 10px; color: var(--text-dim);
-  flex-shrink: 0; padding-top: 1px; font-weight: 600;
+  color: var(--text-dim);
+  font-size: 9px;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
 }
-.event-user  { color: var(--primary); font-weight: 700; margin-right: 4px; }
-.event-text  { color: var(--text); }
-.event-gift  { color: var(--gold); font-weight: 600; }
-.event-sc    { color: var(--secondary); font-weight: 600; }
-.event-guard { color: var(--success); font-weight: 600; }
+
+.event-user { color: var(--lime); margin-right: 4px; }
+.event-text { color: var(--text); }
+.event-gift { color: var(--lime-dim); }
+.event-sc   { color: var(--lime); font-weight: 600; }
+.event-guard { color: var(--lime); font-weight: 600; }
+
+/* ---- QUIZ QUESTION LIST ---- */
+.quiz-q-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 2px solid transparent;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.quiz-q-row:hover { border-left-color: var(--lime); background: rgba(170,255,0,0.03); }
+.quiz-q-row.selected { border-left-color: var(--lime); background: rgba(170,255,0,0.06); }
+
+.quiz-q-id {
+  font-size: 9px; color: var(--text-dim);
+  width: 28px; flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+.quiz-q-text { flex: 1; font-size: 11px; color: var(--text); }
+.quiz-q-type { flex-shrink: 0; }
 
 /* ---- SCOREBOARD ---- */
 .sb-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(221,214,254,0.5);
-}
-.sb-rank {
-  width: 24px; text-align: center;
-  font-family: 'Nunito', sans-serif;
-  font-size: 12px; color: var(--text-dim); font-weight: 700;
-}
-.sb-rank.top { color: var(--gold); }
-.sb-name { flex: 1; font-size: 13px; font-weight: 500; }
-.sb-bar-wrap { width: 100px; height: 6px; background: var(--border); border-radius: 999px; }
-.sb-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 999px; transition: width 0.6s ease; }
-.sb-score {
-  width: 50px; text-align: right;
-  font-family: 'Nunito', sans-serif;
-  font-size: 13px; color: var(--primary); font-weight: 700;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(46,46,46,0.5);
 }
 
-/* ---- QUIZ PANEL ---- */
-.quiz-q-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--card);
+.sb-rank {
+  width: 20px; font-size: 10px;
+  color: var(--text-dim); text-align: center;
+  flex-shrink: 0;
 }
-.quiz-q-row:hover { border-color: var(--primary); background: var(--primary-dim); }
-.quiz-q-row.selected { border-color: var(--primary); background: var(--primary-dim); box-shadow: var(--primary-glow); }
-.quiz-q-id {
-  font-family: 'Nunito', sans-serif;
-  font-size: 11px; color: var(--text-dim); font-weight: 700;
-  width: 32px; flex-shrink: 0;
+
+.sb-rank.top { color: var(--lime); font-weight: 700; }
+.sb-name { flex: 1; font-size: 11px; }
+
+.sb-bar-wrap {
+  width: 80px; height: 4px;
+  background: var(--border);
+  flex-shrink: 0;
 }
-.quiz-q-text { flex: 1; font-size: 13px; }
-.quiz-q-type { flex-shrink: 0; }
+
+.sb-bar { height: 100%; background: var(--lime); }
+.sb-score { width: 36px; text-align: right; font-size: 11px; color: var(--lime); flex-shrink: 0; }
 
 /* ---- SC LIST ---- */
 .sc-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(221,214,254,0.5);
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(46,46,46,0.5);
 }
+
 .sc-price-badge {
-  background: var(--gold);
-  color: #fff;
-  font-family: 'Nunito', sans-serif;
-  font-size: 12px; font-weight: 800;
-  padding: 3px 10px; border-radius: 999px;
+  font-size: 10px; font-weight: 700;
+  color: #000; background: var(--lime);
+  padding: 2px 6px;
   flex-shrink: 0;
+  letter-spacing: 1px;
 }
-.sc-info { flex: 1; }
-.sc-user-name { font-size: 13px; color: var(--primary); font-weight: 700; margin-bottom: 2px; }
-.sc-msg { font-size: 12px; color: var(--text); }
+
+.sc-info { flex: 1; min-width: 0; }
+.sc-user-name { font-size: 11px; color: var(--lime); margin-bottom: 2px; }
+.sc-msg { font-size: 11px; color: var(--text); }
 
 /* ---- QR CODE ---- */
-#qrCanvas { display: block; margin: 0 auto; border: 3px solid var(--border); border-radius: 12px; }
+#qrCanvas {
+  display: block; margin: 0 auto;
+  border: 1px solid var(--border);
+}
+
 .qr-url {
-  font-family: 'Nunito', sans-serif;
-  font-size: 10px; color: var(--text-dim);
-  text-align: center; margin-top: 10px;
-  word-break: break-all; font-weight: 600;
+  font-size: 9px; color: var(--text-dim);
+  text-align: center; margin-top: 8px;
+  word-break: break-all; letter-spacing: 0.5px;
 }
 
 /* ---- COOKIE ROW ---- */
 .cookie-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 10px;
-  transition: border-color 0.2s;
-  background: var(--bg);
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 2px solid transparent;
+  margin-bottom: 6px;
+  transition: border-color 0.15s;
 }
-.cookie-row.active-cookie { border-color: var(--success); background: var(--success-dim); }
+
+.cookie-row.active-cookie { border-left-color: var(--lime); }
+
 .cookie-face {
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 2px solid var(--border);
+  width: 28px; height: 28px;
+  border: 1px solid var(--border);
   object-fit: cover; flex-shrink: 0;
-  background: var(--border);
+  background: #1a1a1a;
 }
+
 .cookie-info { flex: 1; min-width: 0; }
-.cookie-label { font-size: 13px; font-weight: 700; font-family: 'Nunito', sans-serif; }
-.cookie-uid { font-family: 'Nunito', sans-serif; font-size: 11px; color: var(--text-dim); font-weight: 600; }
+.cookie-label { font-size: 11px; font-weight: 500; }
+.cookie-uid { font-size: 9px; color: var(--text-dim); letter-spacing: 0.5px; margin-top: 2px; }
 .cookie-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 /* ---- MODAL ---- */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(45,32,64,0.40);
-  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.88);
   z-index: 500;
   display: none; align-items: center; justify-content: center;
 }
+
 .modal-overlay.open { display: flex; }
+
 .modal {
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
-  padding: 28px;
-  width: 500px; max-width: 95vw;
-  box-shadow: 0 20px 60px rgba(139,92,246,0.20);
+  background: #0D0D0D;
+  border: 1px solid var(--lime);
+  padding: 24px;
+  width: 480px; max-width: 95vw;
   position: relative;
 }
+
 .modal-title {
-  font-family: 'Nunito', sans-serif;
-  font-size: 18px; font-weight: 800;
-  color: var(--primary);
-  margin-bottom: 22px;
+  font-size: 11px; font-weight: 700;
+  color: var(--lime);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
 }
+
 .modal-close {
-  position: absolute; top: 18px; right: 18px;
-  background: var(--bg); border: none;
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: none;
   color: var(--text-dim); cursor: pointer;
   font-size: 16px; line-height: 1;
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
+  font-family: var(--font);
+  transition: color 0.15s;
 }
-.modal-close:hover { background: var(--secondary-dim); color: var(--secondary); }
-.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+
+.modal-close:hover { color: var(--red); }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
 /* ---- TOAST ---- */
 #toast {
-  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
-  background: var(--primary);
-  border-radius: 999px;
-  padding: 10px 24px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 13px; font-weight: 700; color: #fff;
-  box-shadow: 0 8px 24px rgba(139,92,246,0.35);
+  position: fixed; bottom: 20px; right: 20px;
+  background: #000;
+  border: 1px solid var(--lime);
+  padding: 8px 14px;
+  font-family: var(--font);
+  font-size: 10px; color: var(--lime);
+  letter-spacing: 1px;
   z-index: 1000;
-  opacity: 0;
-  transition: all 0.3s;
+  transform: translateY(16px); opacity: 0;
+  transition: all 0.2s;
   pointer-events: none;
-  white-space: nowrap;
+  text-transform: uppercase;
 }
-#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-#toast.error { background: var(--error); box-shadow: 0 8px 24px rgba(239,68,68,0.35); }
+
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.error { border-color: var(--red); color: var(--red); }
 
 /* ---- MISC ---- */
-.section-gap { margin-bottom: 20px; }
+.section-gap { margin-bottom: 16px; }
 .flex-row { display: flex; gap: 10px; align-items: center; }
 .flex-1 { flex: 1; }
-.text-dim   { color: var(--text-dim); }
-.text-cyan  { color: var(--primary); }
-.text-pink  { color: var(--secondary); }
-.text-gold  { color: var(--gold); }
-.text-green { color: var(--success); }
-.mono { font-family: 'Nunito', monospace; }
-.mt-8  { margin-top: 8px; }
+.text-dim { color: var(--text-dim); }
+.text-cyan { color: var(--lime); }
+.text-pink { color: var(--red); }
+.text-gold { color: var(--lime-dim); }
+.text-green { color: var(--lime); }
+.mono { font-family: var(--font); }
+.mt-8 { margin-top: 8px; }
 .mt-12 { margin-top: 12px; }
+
 .empty-hint {
-  text-align: center; padding: 28px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 12px; color: var(--text-dim);
-  font-weight: 600; letter-spacing: 0.3px;
+  text-align: center; padding: 24px;
+  font-size: 10px; color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
-/* ---- OVERLAY LAYOUT PANEL ---- */
-.ovl-preview-module {
-  position: absolute;
-  background: rgba(139,92,246,0.18);
-  border: 1px solid var(--primary);
-  border-radius: 3px;
-  padding: 2px 6px;
-  font-size: 10px; font-weight: 700;
-  color: var(--primary);
-  font-family: 'Nunito', sans-serif;
-  white-space: nowrap;
-  cursor: default;
-  transition: left 0.3s ease, top 0.3s ease;
-}
-.ovl-module-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-.ovl-module-row:last-child { border-bottom: none; }
-.ovl-module-name {
-  width: 72px; font-size: 12px; font-weight: 700;
-  color: var(--text); font-family: 'Nunito', sans-serif;
-  flex-shrink: 0;
-}
-.ovl-toggle {
-  width: 36px; height: 20px; border-radius: 10px;
-  background: var(--border); border: none; cursor: pointer;
-  position: relative; transition: background 0.2s; flex-shrink: 0;
-}
-.ovl-toggle.on { background: var(--primary); }
-.ovl-toggle::after {
-  content: '';
-  position: absolute; top: 3px; left: 3px;
-  width: 14px; height: 14px; border-radius: 50%;
-  background: #fff; transition: left 0.2s;
-}
-.ovl-toggle.on::after { left: 19px; }
-.ovl-preset-group { display: flex; gap: 4px; flex-wrap: wrap; }
-.ovl-preset-btn {
-  padding: 3px 8px; border-radius: 999px;
-  border: 1.5px solid var(--border);
-  background: var(--bg); color: var(--text-dim);
-  font-size: 10px; font-weight: 700; cursor: pointer;
-  font-family: 'Nunito', sans-serif;
-  transition: all 0.15s;
-}
-.ovl-preset-btn.active {
-  border-color: var(--primary);
-  background: var(--primary-dim);
-  color: var(--primary);
-}
-.ovl-theme-group { display: flex; gap: 4px; margin-left: auto; }
-.ovl-theme-btn {
-  padding: 3px 8px; border-radius: 999px;
-  border: 1.5px solid var(--border);
-  background: var(--bg); color: var(--text-dim);
-  font-size: 10px; font-weight: 700; cursor: pointer;
-  font-family: 'Nunito', sans-serif;
-  transition: all 0.15s;
-}
-.ovl-theme-btn.active {
-  border-color: var(--secondary);
-  background: var(--secondary-dim);
-  color: var(--secondary);
-}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: var(--border); }
+::-webkit-scrollbar-thumb:hover { background: var(--lime); }
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
 <div id="header">
-  <div class="header-logo">Live Control</div>
+  <div class="header-logo">LIVE CTRL<span class="cursor">_</span></div>
   <div class="header-sep"></div>
   <div class="header-status">
     <div class="status-dot" id="biliDot"></div>
-    <span id="biliStatusText">离线</span>
+    <span id="biliStatusText">OFFLINE</span>
   </div>
   <div class="header-sep"></div>
   <div class="header-status">
     <div class="status-dot live" id="wsDot"></div>
-    <span id="wsStatus">WS 连接中</span>
+    <span id="wsStatus">WS CONNECTING</span>
   </div>
   <div class="header-spacer"></div>
   <div class="header-game-badge" id="gameBadge">QUIZ ACTIVE</div>
@@ -614,32 +538,28 @@ body::before {
 <div id="sidebar">
   <button class="nav-btn active" data-panel="dashboard" onclick="switchPanel('dashboard',this)" title="仪表盘">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-    <span class="nav-label">DASH</span>
+    <span>DASH</span>
   </button>
   <button class="nav-btn" data-panel="quiz" onclick="switchPanel('quiz',this)" title="答题">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <span class="nav-label">QUIZ</span>
+    <span>QUIZ</span>
   </button>
   <button class="nav-btn" data-panel="vote" onclick="switchPanel('vote',this)" title="投票">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    <span class="nav-label">VOTE</span>
+    <span>VOTE</span>
   </button>
   <button class="nav-btn" data-panel="gift" onclick="switchPanel('gift',this)" title="礼物">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-    <span class="nav-label">GIFT</span>
+    <span>GIFT</span>
   </button>
   <button class="nav-btn" data-panel="sc" onclick="switchPanel('sc',this)" title="SC">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    <span class="nav-label">SC</span>
+    <span>SC</span>
   </button>
   <div class="nav-sep"></div>
   <button class="nav-btn" data-panel="auth" onclick="switchPanel('auth',this)" title="账号">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    <span class="nav-label">AUTH</span>
-  </button>
-  <button class="nav-btn" data-panel="overlay" onclick="switchPanel('overlay',this)" title="Overlay 布局">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-    <span class="nav-label">OVL</span>
+    <span>AUTH</span>
   </button>
 </div>
 
@@ -656,25 +576,25 @@ body::before {
     <div>
       <div class="card section-gap">
         <div class="card-title">系统状态</div>
-        <div class="flex-row" style="margin-bottom:12px">
-          <span class="text-dim" style="font-size:12px;width:80px;font-family:'Nunito',sans-serif;font-weight:600">B站连接</span>
-          <span class="tag" id="biliTag">离线</span>
+        <div class="flex-row" style="margin-bottom:10px">
+          <span class="text-dim mono" style="font-size:10px;width:80px;letter-spacing:1px">B站连接</span>
+          <span class="tag" id="biliTag">OFFLINE</span>
         </div>
-        <div class="flex-row" style="margin-bottom:12px">
-          <span class="text-dim" style="font-size:12px;width:80px;font-family:'Nunito',sans-serif;font-weight:600">WebSocket</span>
-          <span class="tag tag-green" id="wsTag">已连接</span>
+        <div class="flex-row" style="margin-bottom:10px">
+          <span class="text-dim mono" style="font-size:10px;width:80px;letter-spacing:1px">WebSocket</span>
+          <span class="tag tag-green" id="wsTag">CONNECTED</span>
         </div>
         <div class="flex-row">
-          <span class="text-dim" style="font-size:12px;width:80px;font-family:'Nunito',sans-serif;font-weight:600">当前游戏</span>
-          <span class="tag tag-dim" id="activeGameTag">无</span>
+          <span class="text-dim mono" style="font-size:10px;width:80px;letter-spacing:1px">当前游戏</span>
+          <span class="tag tag-dim" id="activeGameTag">NONE</span>
         </div>
       </div>
       <div class="card">
         <div class="card-title">快捷操作</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <button class="btn btn-pink btn-full" onclick="stopAll()">停止所有游戏</button>
-          <button class="btn btn-cyan btn-full" onclick="switchPanel('quiz',document.querySelector('[data-panel=quiz]'))">开始答题</button>
-          <button class="btn btn-gold btn-full" onclick="switchPanel('vote',document.querySelector('[data-panel=vote]'))">开始投票</button>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-pink btn-full" onclick="stopAll()">STOP ALL GAMES</button>
+          <button class="btn btn-cyan btn-full" onclick="switchPanel('quiz',document.querySelector('[data-panel=quiz]'))">START QUIZ</button>
+          <button class="btn btn-gold btn-full" onclick="switchPanel('vote',document.querySelector('[data-panel=vote]'))">START VOTE</button>
         </div>
       </div>
     </div>
@@ -688,25 +608,25 @@ body::before {
       <div class="card-title">题库</div>
       <div class="flex-row section-gap">
         <button class="btn btn-cyan btn-sm" onclick="openModal('modalAddQ')">+ 新增题目</button>
-        <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="loadQuestions()">刷新</button>
+        <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="loadQuestions()">刷新</button>
       </div>
-      <div id="questionList"><div class="empty-hint">暂无题目</div></div>
+      <div id="questionList"><div class="empty-hint">NO QUESTIONS LOADED</div></div>
     </div>
     <div>
       <div class="card section-gap">
         <div class="card-title">启动答题</div>
         <div class="form-row">
           <label class="form-label">已选题目</label>
-          <div style="font-size:12px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600" id="selectedQInfo">— 未选择 —</div>
+          <div class="mono" style="font-size:10px;color:var(--text-dim)" id="selectedQInfo">— 未选择 —</div>
         </div>
         <div class="flex-row">
-          <button class="btn btn-green flex-1" id="btnStartQuiz" onclick="startQuiz()" disabled>开始答题</button>
-          <button class="btn btn-pink" onclick="stopQuiz()">停止</button>
+          <button class="btn btn-green flex-1" id="btnStartQuiz" onclick="startQuiz()" disabled>START QUIZ</button>
+          <button class="btn btn-pink" onclick="stopQuiz()">STOP</button>
         </div>
       </div>
       <div class="card">
         <div class="card-title">答题状态</div>
-        <div id="quizStatus" style="font-size:12px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600">空闲</div>
+        <div id="quizStatus" class="mono" style="font-size:10px;color:var(--text-dim)">IDLE</div>
       </div>
     </div>
   </div>
@@ -717,24 +637,24 @@ body::before {
   <div class="grid-2 section-gap">
     <div class="card">
       <div class="card-title">计分板</div>
-      <div id="voteScoreboard"><div class="empty-hint">暂无活跃场次</div></div>
+      <div id="voteScoreboard"><div class="empty-hint">NO ACTIVE SESSION</div></div>
     </div>
     <div>
       <div class="card section-gap">
         <div class="card-title">控制</div>
         <div class="flex-row section-gap">
-          <button class="btn btn-green flex-1" onclick="startVote()">开始投票</button>
-          <button class="btn btn-pink" onclick="stopVote()">停止</button>
-          <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="resetVote()">重置</button>
+          <button class="btn btn-green flex-1" onclick="startVote()">START VOTE</button>
+          <button class="btn btn-pink" onclick="stopVote()">STOP</button>
+          <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="resetVote()">RESET</button>
         </div>
         <div class="form-row">
-          <label class="form-label">Session ID（可选）</label>
+          <label class="form-label">Session ID (可选)</label>
           <input class="form-input" id="voteSessionId" placeholder="留空自动生成">
         </div>
       </div>
       <div class="card">
         <div class="card-title">投票配置</div>
-        <div id="voteConfig" style="font-size:12px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600">加载中...</div>
+        <div id="voteConfig" class="mono" style="font-size:10px;color:var(--text-dim)">加载中...</div>
       </div>
     </div>
   </div>
@@ -747,13 +667,13 @@ body::before {
       <div class="card-title">手动触发礼物</div>
       <div class="form-row">
         <label class="form-label">礼物名称</label>
-        <input class="form-input" id="giftTriggerName" placeholder="例如：辣条">
+        <input class="form-input" id="giftTriggerName" placeholder="e.g. 辣条">
       </div>
-      <button class="btn btn-gold btn-full" onclick="triggerGift()">触发礼物</button>
+      <button class="btn btn-gold btn-full" onclick="triggerGift()">TRIGGER GIFT</button>
     </div>
     <div class="card">
       <div class="card-title">礼物触发配置</div>
-      <div style="font-size:12px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600">礼物触发规则在 config.yaml 中配置</div>
+      <div class="mono text-dim" style="font-size:10px">礼物触发规则在 config.yaml 中配置</div>
     </div>
   </div>
 </div>
@@ -764,14 +684,14 @@ body::before {
     <div class="card">
       <div class="card-title">SC 配置</div>
       <div class="form-row">
-        <label class="form-label">最低金额阈值（元）</label>
+        <label class="form-label">最低金额阈值 (元)</label>
         <input class="form-input" id="scMinPrice" type="number" placeholder="30">
       </div>
-      <button class="btn btn-cyan btn-full" onclick="saveScConfig()">保存配置</button>
+      <button class="btn btn-cyan btn-full" onclick="saveScConfig()">SAVE CONFIG</button>
     </div>
     <div class="card">
       <div class="card-title">SC 记录</div>
-      <div id="scList"><div class="empty-hint">暂无 SC</div></div>
+      <div id="scList"><div class="empty-hint">NO SC RECEIVED</div></div>
     </div>
   </div>
 </div>
@@ -781,7 +701,7 @@ body::before {
   <div class="grid-2 section-gap">
     <div class="card">
       <div class="card-title">账号管理</div>
-      <div id="cookieList"><div class="empty-hint">加载中...</div></div>
+      <div id="cookieList"><div class="empty-hint">LOADING...</div></div>
       <div class="mt-12">
         <button class="btn btn-cyan btn-full" onclick="openModal('modalAddCookie')">+ 添加账号</button>
       </div>
@@ -792,45 +712,21 @@ body::before {
       <div class="qr-url" id="qrUrl">—</div>
       <div class="mt-12 flex-row" style="justify-content:center;gap:10px">
         <button class="btn btn-cyan btn-sm" onclick="genQR()">生成二维码</button>
-        <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="pollQR()">检查状态</button>
+        <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="pollQR()">检查状态</button>
       </div>
-      <div class="mt-8" style="font-size:11px;text-align:center;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:600" id="qrStatus">—</div>
+      <div class="mt-8 mono text-dim" style="font-size:9px;text-align:center;letter-spacing:1px" id="qrStatus">—</div>
     </div>
   </div>
   <div class="section-gap">
     <div class="card">
       <div class="card-title">弹幕 Token（手动）</div>
-      <div class="text-dim" style="font-size:13px;margin-bottom:14px;line-height:1.7;font-family:'Noto Sans SC',sans-serif">
+      <div class="text-dim" style="font-size:11px;margin-bottom:12px;line-height:1.7">
         服务器 IP 被 B站 风控时，getDanmuInfo 返回 -352，无法自动获取 token。<br>
-        解决方法：在浏览器打开直播间，F12 → Network → 搜索 <span style="color:var(--primary);font-weight:700;font-family:monospace">getDanmuInfo</span>，复制响应中的 <span style="color:var(--primary);font-weight:700;font-family:monospace">token</span> 字段粘贴到此处。
+        解决方法：在浏览器打开直播间，F12 → Network → 搜索 <span class="mono" style="color:var(--lime)">getDanmuInfo</span>，复制响应中的 <span class="mono" style="color:var(--lime)">token</span> 字段粘贴到此处。
       </div>
-      <div class="flex-row" style="gap:10px">
-        <input class="form-input" id="manualDanmakuToken" placeholder="粘贴 token..." style="flex:1;font-family:monospace;font-size:12px">
-        <button class="btn btn-cyan btn-sm" onclick="setDanmakuToken()">设置</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="panel" id="panel-overlay">
-  <div class="section-gap">
-    <div class="card">
-      <div class="card-title">Overlay 模块编排</div>
-      <!-- 16:9 preview canvas (480×270, scale 1:4 from 1920×1080) -->
-      <div style="position:relative;width:480px;height:270px;background:#0a0a14;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;flex-shrink:0" id="ovlPreview">
-        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 17px,rgba(139,92,246,0.04) 17px,rgba(139,92,246,0.04) 18px),repeating-linear-gradient(90deg,transparent,transparent 17px,rgba(139,92,246,0.04) 17px,rgba(139,92,246,0.04) 18px);pointer-events:none"></div>
-        <div class="ovl-preview-module" id="prev-gift-alert"     style="left:376px;top:9px">礼物提醒</div>
-        <div class="ovl-preview-module" id="prev-sc-alert"       style="left:371px;top:33px">SC</div>
-        <div class="ovl-preview-module" id="prev-scoreboard"     style="left:396px;top:60px">计分板</div>
-        <div class="ovl-preview-module" id="prev-quiz-display"   style="left:150px;top:90px">答题</div>
-        <div class="ovl-preview-module" id="prev-quiz-result"    style="left:163px;top:90px">结果</div>
-        <div class="ovl-preview-module" id="prev-danmaku-wall"   style="left:9px;top:166px">弹幕墙</div>
-      </div>
-      <!-- Per-module rows -->
-      <div id="ovlModuleRows"></div>
-      <div class="mt-12 flex-row" style="gap:10px">
-        <button class="btn btn-cyan" onclick="applyOverlayLayout()">应用到 Overlay</button>
-        <button class="btn" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="loadOverlayLayout()">重新加载</button>
+      <div class="flex-row" style="gap:8px">
+        <input class="form-input" id="manualDanmakuToken" placeholder="粘贴 token..." style="flex:1;font-size:11px">
+        <button class="btn btn-cyan btn-sm" onclick="setDanmakuToken()">SET</button>
       </div>
     </div>
   </div>
@@ -856,24 +752,24 @@ body::before {
       <textarea class="form-textarea" id="qText" placeholder="输入题目..."></textarea>
     </div>
     <div class="form-row">
-      <label class="form-label">选项（每行一个，共4个）</label>
+      <label class="form-label">选项 (每行一个，共4个)</label>
       <textarea class="form-textarea" id="qOptions" placeholder="选项A&#10;选项B&#10;选项C&#10;选项D"></textarea>
     </div>
     <div class="form-row">
-      <label class="form-label">正确答案（0=A, 1=B, 2=C, 3=D）</label>
+      <label class="form-label">正确答案 (0=A, 1=B, 2=C, 3=D)</label>
       <input class="form-input" id="qAnswer" type="number" min="0" max="3" value="0">
     </div>
     <div class="form-row">
-      <label class="form-label">解析（可选）</label>
+      <label class="form-label">解析 (可选)</label>
       <textarea class="form-textarea" id="qExplanation" placeholder="答案解析..."></textarea>
     </div>
     <div class="form-row">
-      <label class="form-label">媒体路径（可选）</label>
+      <label class="form-label">媒体路径 (可选)</label>
       <input class="form-input" id="qMedia" placeholder="/media/image.jpg">
     </div>
     <div class="modal-footer">
-      <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="closeModal('modalAddQ')">取消</button>
-      <button class="btn btn-cyan btn-sm" onclick="addQuestion()">保存</button>
+      <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="closeModal('modalAddQ')">CANCEL</button>
+      <button class="btn btn-cyan btn-sm" onclick="addQuestion()">SAVE</button>
     </div>
   </div>
 </div>
@@ -892,8 +788,8 @@ body::before {
       <div class="form-hint">从浏览器开发者工具复制完整 Cookie</div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-sm" style="background:var(--bg);color:var(--text-dim);border:1.5px solid var(--border)" onclick="closeModal('modalAddCookie')">取消</button>
-      <button class="btn btn-cyan btn-sm" onclick="addCookie()">保存</button>
+      <button class="btn btn-sm" style="border-color:var(--border);color:var(--text-dim)" onclick="closeModal('modalAddCookie')">CANCEL</button>
+      <button class="btn btn-cyan btn-sm" onclick="addCookie()">SAVE</button>
     </div>
   </div>
 </div>
@@ -1345,112 +1241,8 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ---- OVERLAY LAYOUT ----
-const OVL_MODULES = [
-  { id: 'gift-alert',   label: '礼物提醒' },
-  { id: 'sc-alert',     label: 'SC' },
-  { id: 'scoreboard',   label: '计分板' },
-  { id: 'quiz-display', label: '答题' },
-  { id: 'quiz-result',  label: '结果' },
-  { id: 'danmaku-wall', label: '弹幕墙' },
-];
-const OVL_PRESETS = {
-  'top-left':     { x: 36,   y: 36  },
-  'top-right':    { x: 1504, y: 36  },
-  'center':       { x: 600,  y: 360 },
-  'right':        { x: 1584, y: 240 },
-  'bottom-left':  { x: 36,   y: 664 },
-  'bottom-right': { x: 1504, y: 664 },
-};
-// Scale factor: preview is 480×270, canvas is 1920×1080 → 1:4
-const OVL_SCALE = 480 / 1920;
-
-let ovlConfig = null;
-
-function loadOverlayLayout() {
-  fetch('/api/overlay/layout')
-    .then(r => r.json())
-    .then(cfg => { ovlConfig = cfg; renderOvlRows(); updateOvlPreview(); })
-    .catch(() => showToast('加载 Overlay 配置失败', true));
-}
-
-function renderOvlRows() {
-  if (!ovlConfig) return;
-  const container = document.getElementById('ovlModuleRows');
-  container.innerHTML = OVL_MODULES.map(m => {
-    const mc = ovlConfig.modules[m.id] || { visible: false, position: { preset: 'top-left', x: 36, y: 36 }, theme: 'cyberpunk' };
-    const preset = mc.position.preset || 'custom';
-    const theme = mc.theme || 'cyberpunk';
-    const presetBtns = Object.keys(OVL_PRESETS).map(p =>
-      `<button class="ovl-preset-btn${preset===p?' active':''}" onclick="setOvlPreset('${m.id}','${p}')">${p}</button>`
-    ).join('');
-    const themeBtns = ['cyberpunk','warm','glass'].map(t =>
-      `<button class="ovl-theme-btn${theme===t?' active':''}" onclick="setOvlTheme('${m.id}','${t}')">${t}</button>`
-    ).join('');
-    return `<div class="ovl-module-row" id="ovlrow-${m.id}">
-      <div class="ovl-module-name">${m.label}</div>
-      <button class="ovl-toggle${mc.visible?' on':''}" onclick="toggleOvlVisible('${m.id}',this)" title="显示/隐藏"></button>
-      <div class="ovl-preset-group">${presetBtns}</div>
-      <div class="ovl-theme-group">${themeBtns}</div>
-    </div>`;
-  }).join('');
-}
-
-function updateOvlPreview() {
-  if (!ovlConfig) return;
-  OVL_MODULES.forEach(m => {
-    const mc = ovlConfig.modules[m.id];
-    if (!mc) return;
-    const el = document.getElementById('prev-' + m.id);
-    if (!el) return;
-    el.style.left = Math.round(mc.position.x * OVL_SCALE) + 'px';
-    el.style.top  = Math.round(mc.position.y * OVL_SCALE) + 'px';
-    el.style.opacity = mc.visible ? '1' : '0.35';
-  });
-}
-
-function toggleOvlVisible(id, btn) {
-  if (!ovlConfig || !ovlConfig.modules[id]) return;
-  ovlConfig.modules[id].visible = !ovlConfig.modules[id].visible;
-  btn.classList.toggle('on', ovlConfig.modules[id].visible);
-  updateOvlPreview();
-}
-
-function setOvlPreset(id, preset) {
-  if (!ovlConfig || !ovlConfig.modules[id]) return;
-  const pos = OVL_PRESETS[preset];
-  ovlConfig.modules[id].position = { preset, x: pos.x, y: pos.y };
-  // Update button states in this row
-  const row = document.getElementById('ovlrow-' + id);
-  row.querySelectorAll('.ovl-preset-btn').forEach(b => b.classList.toggle('active', b.textContent === preset));
-  updateOvlPreview();
-}
-
-function setOvlTheme(id, theme) {
-  if (!ovlConfig || !ovlConfig.modules[id]) return;
-  ovlConfig.modules[id].theme = theme;
-  const row = document.getElementById('ovlrow-' + id);
-  row.querySelectorAll('.ovl-theme-btn').forEach(b => b.classList.toggle('active', b.textContent === theme));
-}
-
-async function applyOverlayLayout() {
-  if (!ovlConfig) return;
-  try {
-    const resp = await fetch('/api/overlay/layout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-      body: JSON.stringify(ovlConfig),
-    });
-    if (!resp.ok) throw new Error(await resp.text());
-    showToast('Overlay 配置已应用');
-  } catch (e) {
-    showToast('应用失败: ' + e.message, true);
-  }
-}
-
 // ---- INIT ----
 connectWS();
-loadOverlayLayout();
 </script>
 </body>
 </html>

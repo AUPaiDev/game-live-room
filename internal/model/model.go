@@ -61,6 +61,14 @@ type VoteSession struct {
 	EndedAt   *time.Time
 }
 
+// OverlayConfig stores the current overlay layout and theme configuration.
+// There is always exactly one row (key = "current").
+type OverlayConfig struct {
+	Key        string    `gorm:"primaryKey;size:32"`
+	ConfigJSON string    `gorm:"type:json;not null"`
+	UpdatedAt  time.Time
+}
+
 // BiliCookie stores B站 login credentials for danmaku connection.
 type BiliCookie struct {
 	ID          uint64    `gorm:"primaryKey;autoIncrement"`

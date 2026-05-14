@@ -27,6 +27,7 @@ func (s *Store) AutoMigrate() error {
 		&model.VoteRecord{},
 		&model.VoteSession{},
 		&model.BiliCookie{},
+		&model.OverlayConfig{},
 	)
 }
 
@@ -232,4 +233,26 @@ func (s *Store) ActivateCookie(id uint) error {
 		}
 		return nil
 	})
+}
+
+// GetOverlayConfig returns the current overlay layout config, or nil if not set.
+func (s *Store) GetOverlayConfig() (*model.OverlayConfig, error) {
+	var cfg model.OverlayConfig
+	err := s.db.First(&cfg, "key = ?", "current").Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get overlay config: %w", err)
+	}
+	return &cfg, nil
+}
+
+// UpsertOverlayConfig saves (insert or update) the overlay layout config.
+func (s *Store) UpsertOverlayConfig(cfg *model.OverlayConfig) error {
+	cfg.Key = "current"
+	if err := s.db.Save(cfg).Error; err != nil {
+		return fmt.Errorf("upsert overlay config: %w", err)
+	}
+	return nil
 }
