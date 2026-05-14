@@ -62,9 +62,9 @@ type VoteSession struct {
 }
 
 // OverlayConfig stores the current overlay layout and theme configuration.
-// There is always exactly one row (key = "current").
+// There is always exactly one row (cfg_key = "current").
 type OverlayConfig struct {
-	Key        string    `gorm:"primaryKey;size:32"`
+	Key        string    `gorm:"primaryKey;column:cfg_key;size:32"`
 	ConfigJSON string    `gorm:"type:json;not null"`
 	UpdatedAt  time.Time
 }

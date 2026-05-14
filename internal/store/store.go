@@ -238,7 +238,7 @@ func (s *Store) ActivateCookie(id uint) error {
 // GetOverlayConfig returns the current overlay layout config, or nil if not set.
 func (s *Store) GetOverlayConfig() (*model.OverlayConfig, error) {
 	var cfg model.OverlayConfig
-	err := s.db.First(&cfg, "key = ?", "current").Error
+	err := s.db.First(&cfg, "cfg_key = ?", "current").Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
