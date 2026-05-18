@@ -632,6 +632,10 @@ body::before {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
     <span class="nav-label">SC</span>
   </button>
+  <button class="nav-btn" data-panel="mic" onclick="switchPanel('mic',this)" title="麦位">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    <span class="nav-label">MIC</span>
+  </button>
   <div class="nav-sep"></div>
   <button class="nav-btn" data-panel="auth" onclick="switchPanel('auth',this)" title="账号">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -834,6 +838,48 @@ body::before {
       </div>
     </div>
   </div>
+
+<!-- MIC PANEL -->
+<div class="panel" id="panel-mic">
+  <div class="grid-2 section-gap">
+    <!-- Left column: Current singer + Queue -->
+    <div class="section-gap">
+      <div class="card">
+        <div class="card-title">当前演唱</div>
+        <div id="micCurrentSinger" style="display:flex;align-items:center;gap:12px;padding:8px 0">
+          <div class="empty-hint">无人上麦</div>
+        </div>
+        <button class="btn btn-sm" style="background:var(--error-dim);color:var(--error);border:1.5px solid var(--error)" onclick="micUnassign()" id="btnMicUnassign" disabled>下麦</button>
+      </div>
+      <div class="card">
+        <div class="card-title">排队列表 <span id="micQueueCount" style="color:var(--text-dim);font-weight:400">(0)</span></div>
+        <div id="micQueue" style="max-height:320px;overflow-y:auto"><div class="empty-hint">暂无报名</div></div>
+      </div>
+    </div>
+    <!-- Right column: Controls + Leaderboard -->
+    <div class="section-gap">
+      <div class="card section-gap">
+        <div class="card-title">控制</div>
+        <div class="flex-row" style="gap:10px;margin-bottom:12px">
+          <button class="btn btn-cyan flex-1" onclick="startMicGame()" id="btnMicStart">开始活动</button>
+          <button class="btn" style="background:var(--error-dim);color:var(--error);border:1.5px solid var(--error)" onclick="stopMicGame()" id="btnMicStop" disabled>结束</button>
+        </div>
+        <div class="form-row">
+          <label class="form-label">报名关键词</label>
+          <input class="form-input" id="micKeyword" value="报名" placeholder="报名">
+        </div>
+        <div class="form-row">
+          <label class="form-label">计分礼物名</label>
+          <input class="form-input" id="micGiftName" value="小花花" placeholder="小花花">
+        </div>
+        <div id="micStatus" style="font-size:11px;color:var(--text-dim);margin-top:8px">活动未开启</div>
+      </div>
+      <div class="card">
+        <div class="card-title">排行榜</div>
+        <div id="micLeaderboard" style="max-height:280px;overflow-y:auto"><div class="empty-hint">暂无数据</div></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 </div><!-- end #main -->
@@ -965,6 +1011,7 @@ function handleWsMsg(msg) {
     if (p.game === 'vote') updateVoteBoard(p.state);
     if (p.game === 'quiz') updateQuizStatus('ACTIVE: ' + (p.state && p.state.question ? p.state.question.substring(0,40) : ''));
     if (p.game === 'quiz_result') updateQuizStatus('RESULT SHOWN');
+    if (p.game === 'mic') updateMicPanel(p.state);
   }
 }
 
@@ -1448,9 +1495,130 @@ async function applyOverlayLayout() {
   }
 }
 
+// ---- MIC GAME ----
+let micState = null;
+
+function startMicGame() {
+  const keyword = document.getElementById('micKeyword').value.trim() || '报名';
+  const giftName = document.getElementById('micGiftName').value.trim() || '小花花';
+  apiFetch('/api/game/start', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ game: 'mic', params: { keyword, gift_name: giftName } }),
+  }).then(r => {
+    if (r.ok) showToast('麦位活动已开启');
+    else r.text().then(t => showToast('开启失败: ' + r.status, true));
+  }).catch(e => showToast('开启失败: ' + e.message, true));
+}
+
+function stopMicGame() {
+  apiFetch('/api/game/stop', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+  }).then(r => {
+    if (r.ok) showToast('麦位活动已结束');
+    else showToast('结束失败: ' + r.status, true);
+  }).catch(e => showToast('结束失败: ' + e.message, true));
+}
+
+function micAssign(uid) {
+  apiFetch('/api/mic/assign', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ uid }),
+  }).then(r => {
+    if (r.ok) showToast('已上麦');
+    else showToast('上麦失败: ' + r.status, true);
+  }).catch(e => showToast('上麦失败: ' + e.message, true));
+}
+
+function micUnassign() {
+  apiFetch('/api/mic/unassign', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+  }).then(r => {
+    if (r.ok) showToast('已下麦');
+    else showToast('下麦失败: ' + r.status, true);
+  }).catch(e => showToast('下麦失败: ' + e.message, true));
+}
+
+function micKick(uid) {
+  apiFetch('/api/mic/kick', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ uid }),
+  }).then(r => {
+    if (r.ok) showToast('已移除');
+    else showToast('移除失败: ' + r.status, true);
+  }).catch(e => showToast('移除失败: ' + e.message, true));
+}
+
+function updateMicPanel(state) {
+  micState = state;
+  const active = state && state.active;
+
+  document.getElementById('btnMicStart').disabled = !!active;
+  document.getElementById('btnMicStop').disabled = !active;
+  document.getElementById('btnMicUnassign').disabled = !state || !state.current_singer;
+  document.getElementById('micStatus').textContent = active
+    ? `活动进行中 · 关键词: ${state.keyword} · 礼物: ${state.gift_name}`
+    : '活动未开启';
+
+  // Current singer
+  const singerEl = document.getElementById('micCurrentSinger');
+  if (state && state.current_singer) {
+    const s = state.current_singer;
+    singerEl.innerHTML = `
+      <img src="${esc(s.avatar || 'https://i0.hdslb.com/bfs/face/member/noface.jpg')}" style="width:40px;height:40px;border-radius:50%;border:2px solid var(--primary);object-fit:cover">
+      <div>
+        <div style="font-weight:700;font-size:14px">${esc(s.username)}</div>
+        <div style="font-size:12px;color:var(--primary)">♪ ${s.score} 分 · 第 ${s.mic_count} 次上麦</div>
+      </div>
+    `;
+  } else {
+    singerEl.innerHTML = '<div class="empty-hint">无人上麦</div>';
+  }
+
+  // Queue
+  const participants = (state && state.participants) || [];
+  const queueEl = document.getElementById('micQueue');
+  document.getElementById('micQueueCount').textContent = `(${participants.length})`;
+  if (participants.length === 0) {
+    queueEl.innerHTML = '<div class="empty-hint">暂无报名</div>';
+  } else {
+    queueEl.innerHTML = participants.map(p => `
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <img src="${esc(p.avatar || 'https://i0.hdslb.com/bfs/face/member/noface.jpg')}" style="width:28px;height:28px;border-radius:50%;object-fit:cover">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.username)}</div>
+          <div style="font-size:11px;color:var(--text-dim)">${p.score} 分${p.on_mic ? ' · 🎤 演唱中' : ''}</div>
+        </div>
+        <button class="btn btn-sm" style="padding:2px 8px;font-size:10px;background:var(--primary-dim);color:var(--primary);border:1px solid var(--primary)" onclick="micAssign(${p.uid})">上麦</button>
+        <button class="btn btn-sm" style="padding:2px 6px;font-size:10px;background:var(--error-dim);color:var(--error);border:1px solid var(--error)" onclick="micKick(${p.uid})">×</button>
+      </div>
+    `).join('');
+  }
+
+  // Leaderboard
+  const lbEl = document.getElementById('micLeaderboard');
+  const sorted = [...participants].sort((a, b) => b.score - a.score);
+  if (sorted.length === 0) {
+    lbEl.innerHTML = '<div class="empty-hint">暂无数据</div>';
+  } else {
+    lbEl.innerHTML = sorted.slice(0, 20).map((p, i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <div style="width:20px;text-align:center;font-size:12px;font-weight:700;color:${i < 3 ? 'var(--gold)' : 'var(--text-dim)'}">${i + 1}</div>
+        <div style="flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.username)}</div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary)">${p.score}</div>
+      </div>
+    `).join('');
+  }
+}
+
 // ---- INIT ----
 connectWS();
 loadOverlayLayout();
+apiFetch('/api/mic/state').then(r => { if (r.ok) r.json().then(s => updateMicPanel(s)); }).catch(() => {});
 </script>
 </body>
 </html>

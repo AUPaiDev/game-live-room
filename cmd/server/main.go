@@ -167,6 +167,12 @@ func buildRouter(h *hub.Hub, engine *game.Engine, overlayMgr *overlay.Manager, s
 
 	apiMux.HandleFunc("/api/auth/danmaku-token", handleDanmakuToken(dc))
 
+	// Mic queue karaoke
+	apiMux.HandleFunc("/api/mic/assign", handleMicAssign(engine))
+	apiMux.HandleFunc("/api/mic/unassign", handleMicUnassign(engine))
+	apiMux.HandleFunc("/api/mic/state", handleMicState(engine))
+	apiMux.HandleFunc("/api/mic/kick", handleMicKick(engine))
+
 	// Auth: B站 QR code login
 	apiMux.HandleFunc("/api/auth/qr/generate", handleQRCodeGenerate(userAgent))
 	apiMux.HandleFunc("/api/auth/qr/poll", handleQRCodePoll(st, userAgent))
@@ -582,6 +588,80 @@ func handleDanmakuToken(dc *bilibili.DanmakuClient) http.HandlerFunc {
 			return
 		}
 		dc.SetManualToken(body.Token)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
+}
+
+func handleMicAssign(engine *game.Engine) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			UID uint64 `json:"uid"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(err))
+			return
+		}
+		if body.UID == 0 {
+			writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("missing uid")))
+			return
+		}
+		if err := engine.MicHandler().AssignSinger(body.UID); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(err))
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
+}
+
+func handleMicUnassign(engine *game.Engine) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if err := engine.MicHandler().UnassignSinger(); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(err))
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
+}
+
+func handleMicState(engine *game.Engine) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		writeJSON(w, http.StatusOK, engine.MicHandler().GetState())
+	}
+}
+
+func handleMicKick(engine *game.Engine) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			UID uint64 `json:"uid"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(err))
+			return
+		}
+		if body.UID == 0 {
+			writeJSON(w, http.StatusBadRequest, errResp(fmt.Errorf("missing uid")))
+			return
+		}
+		if err := engine.MicHandler().KickParticipant(body.UID); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResp(err))
+			return
+		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
 }

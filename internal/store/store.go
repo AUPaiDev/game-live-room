@@ -28,6 +28,9 @@ func (s *Store) AutoMigrate() error {
 		&model.VoteSession{},
 		&model.BiliCookie{},
 		&model.OverlayConfig{},
+		&model.MicSession{},
+		&model.MicParticipant{},
+		&model.MicGiftRecord{},
 	)
 }
 
@@ -253,6 +256,97 @@ func (s *Store) UpsertOverlayConfig(cfg *model.OverlayConfig) error {
 	cfg.Key = "current"
 	if err := s.db.Save(cfg).Error; err != nil {
 		return fmt.Errorf("upsert overlay config: %w", err)
+	}
+	return nil
+}
+
+// CreateMicSession inserts a new mic session record.
+func (s *Store) CreateMicSession(sess *model.MicSession) error {
+	if err := s.db.Create(sess).Error; err != nil {
+		return fmt.Errorf("create mic session: %w", err)
+	}
+	return nil
+}
+
+// UpdateMicSession updates an existing mic session.
+func (s *Store) UpdateMicSession(sess *model.MicSession) error {
+	if err := s.db.Save(sess).Error; err != nil {
+		return fmt.Errorf("update mic session: %w", err)
+	}
+	return nil
+}
+
+// GetMicParticipants returns all participants for a session ordered by score descending.
+func (s *Store) GetMicParticipants(sessionID string) ([]model.MicParticipant, error) {
+	var participants []model.MicParticipant
+	err := s.db.Where("session_id = ?", sessionID).
+		Order("score DESC").
+		Find(&participants).Error
+	if err != nil {
+		return nil, fmt.Errorf("get mic participants: %w", err)
+	}
+	return participants, nil
+}
+
+// UpsertMicParticipant inserts or updates a participant on (session_id, uid) conflict.
+func (s *Store) UpsertMicParticipant(p *model.MicParticipant) error {
+	err := s.db.Where(model.MicParticipant{SessionID: p.SessionID, UID: p.UID}).
+		Assign(model.MicParticipant{
+			Username:     p.Username,
+			Avatar:       p.Avatar,
+			Score:        p.Score,
+			OnMic:        p.OnMic,
+			MicCount:     p.MicCount,
+			RegisteredAt: p.RegisteredAt,
+		}).
+		FirstOrCreate(p).Error
+	if err != nil {
+		return fmt.Errorf("upsert mic participant: %w", err)
+	}
+	return nil
+}
+
+// UpdateMicParticipantScore adds scoreAdd to the participant's score.
+func (s *Store) UpdateMicParticipantScore(sessionID string, uid uint64, scoreAdd int) error {
+	err := s.db.Model(&model.MicParticipant{}).
+		Where("session_id = ? AND uid = ?", sessionID, uid).
+		UpdateColumn("score", gorm.Expr("score + ?", scoreAdd)).Error
+	if err != nil {
+		return fmt.Errorf("update mic participant score: %w", err)
+	}
+	return nil
+}
+
+// SetMicOnMic sets the on_mic flag for a participant and optionally increments mic_count.
+func (s *Store) SetMicOnMic(sessionID string, uid uint64, onMic bool, incMicCount bool) error {
+	updates := map[string]interface{}{"on_mic": onMic}
+	if incMicCount {
+		updates["mic_count"] = gorm.Expr("mic_count + 1")
+	}
+	err := s.db.Model(&model.MicParticipant{}).
+		Where("session_id = ? AND uid = ?", sessionID, uid).
+		Updates(updates).Error
+	if err != nil {
+		return fmt.Errorf("set mic on_mic: %w", err)
+	}
+	return nil
+}
+
+// ClearMicOnMic sets on_mic=false for all participants in a session.
+func (s *Store) ClearMicOnMic(sessionID string) error {
+	err := s.db.Model(&model.MicParticipant{}).
+		Where("session_id = ?", sessionID).
+		Update("on_mic", false).Error
+	if err != nil {
+		return fmt.Errorf("clear mic on_mic: %w", err)
+	}
+	return nil
+}
+
+// SaveMicGiftRecord inserts a new mic gift record.
+func (s *Store) SaveMicGiftRecord(r *model.MicGiftRecord) error {
+	if err := s.db.Create(r).Error; err != nil {
+		return fmt.Errorf("save mic gift record: %w", err)
 	}
 	return nil
 }

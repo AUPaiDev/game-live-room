@@ -346,6 +346,127 @@ html, body {
   from { opacity: 0; transform: translateX(-8px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+
+/* ---- MIC SINGER (top-left) ---- */
+#mic-singer {
+  top: 36px; left: 36px;
+  width: 340px;
+}
+.mic-singer-card {
+  background: var(--module-bg);
+  border: 1px solid var(--module-border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex; align-items: center; gap: 14px;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--module-glow);
+  position: relative; overflow: hidden;
+}
+.mic-singer-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--module-accent), transparent);
+}
+.mic-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 2px solid var(--module-accent);
+  object-fit: cover; flex-shrink: 0;
+}
+.mic-singer-info { flex: 1; min-width: 0; }
+.mic-singer-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px; font-weight: 700;
+  color: var(--module-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mic-singer-score {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px; color: var(--module-accent);
+  margin-top: 2px;
+}
+.mic-live-indicator {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  color: var(--module-accent2);
+  background: rgba(255,45,120,0.12);
+  padding: 3px 8px; border-radius: 3px;
+  animation: micPulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes micPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ---- MIC LEADERBOARD (left side, below singer) ---- */
+#mic-leaderboard {
+  top: 140px; left: 36px;
+  width: 300px;
+}
+.mic-lb-wrap {
+  background: var(--module-bg);
+  border: 1px solid var(--module-border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--module-glow);
+  position: relative; overflow: hidden;
+}
+.mic-lb-wrap::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--module-accent), transparent);
+  opacity: 0.5;
+}
+.mic-lb-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px; font-weight: 700;
+  color: var(--module-accent);
+  text-align: center; margin-bottom: 10px;
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.mic-lb-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.mic-lb-row:last-child { border-bottom: none; }
+.mic-lb-row.on-mic { background: rgba(0,245,255,0.06); border-radius: 3px; padding: 5px 6px; }
+.mic-lb-rank {
+  width: 20px; text-align: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; color: var(--module-accent); font-weight: 700;
+}
+.mic-lb-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--module-border);
+  object-fit: cover; flex-shrink: 0;
+}
+.mic-lb-name {
+  flex: 1; font-size: 12px; color: var(--module-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mic-lb-score {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; color: var(--module-accent);
+  flex-shrink: 0;
+}
+
+/* ---- MIC INACTIVE HINT ---- */
+#mic-inactive {
+  bottom: 36px; left: 36px;
+  width: 220px;
+}
+.mic-inactive-hint {
+  background: var(--module-bg);
+  border: 1px solid var(--module-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 13px; color: var(--module-text);
+  text-align: center;
+  backdrop-filter: blur(10px);
+  opacity: 0.7;
+}
 </style>
 </head>
 <body>
@@ -421,6 +542,31 @@ html, body {
   <div class="danmaku-list" id="danmakuList"></div>
 </div>
 
+<!-- MIC SINGER -->
+<div class="module" id="mic-singer">
+  <div class="mic-singer-card">
+    <img class="mic-avatar" id="micSingerAvatar" src="https://i0.hdslb.com/bfs/face/member/noface.jpg" alt="">
+    <div class="mic-singer-info">
+      <div class="mic-singer-name" id="micSingerName">—</div>
+      <div class="mic-singer-score">♪ <span id="micSingerScore">0</span> 分</div>
+    </div>
+    <div class="mic-live-indicator">♪ LIVE</div>
+  </div>
+</div>
+
+<!-- MIC LEADERBOARD -->
+<div class="module" id="mic-leaderboard">
+  <div class="mic-lb-wrap">
+    <div class="mic-lb-title">🎤 排行榜</div>
+    <div id="micLbRows"></div>
+  </div>
+</div>
+
+<!-- MIC INACTIVE -->
+<div class="module" id="mic-inactive">
+  <div class="mic-inactive-hint">🎤 活动未开启</div>
+</div>
+
 <script>
 // ---- WebSocket with auto-reconnect ----
 let ws = null, wsTimer = null;
@@ -461,6 +607,7 @@ function handleMessage(msg) {
     if (p.game === 'quiz') showQuiz(p.state);
     if (p.game === 'quiz_result') showQuizResult(p.state);
     if (p.game === 'vote') updateScoreboard(p.state);
+    if (p.game === 'mic') updateMicDisplay(p.state);
   } else if (msg.type === 'overlay_layout') {
     if (msg.payload) applyLayout(msg.payload);
   }
@@ -576,6 +723,45 @@ function showQuizResult(state) {
   toggleModule('quiz-display', false);
   toggleModule('quiz-result', true);
   setTimeout(() => toggleModule('quiz-result', false), 10000);
+}
+
+// ---- Mic Queue ----
+function updateMicDisplay(state) {
+  if (!state) return;
+
+  if (!state.active) {
+    toggleModule('mic-singer', false);
+    toggleModule('mic-leaderboard', false);
+    toggleModule('mic-inactive', true);
+    return;
+  }
+
+  toggleModule('mic-inactive', false);
+
+  // Current singer
+  if (state.current_singer) {
+    const s = state.current_singer;
+    document.getElementById('micSingerAvatar').src = s.avatar || 'https://i0.hdslb.com/bfs/face/member/noface.jpg';
+    document.getElementById('micSingerName').textContent = s.username || '—';
+    document.getElementById('micSingerScore').textContent = s.score || 0;
+    toggleModule('mic-singer', true);
+  } else {
+    toggleModule('mic-singer', false);
+  }
+
+  // Leaderboard — always show if there are participants
+  const participants = state.participants || [];
+  const sorted = [...participants].sort((a, b) => b.score - a.score);
+  const rows = document.getElementById('micLbRows');
+  rows.innerHTML = sorted.slice(0, 10).map((p, i) => `
+    <div class="mic-lb-row${p.on_mic ? ' on-mic' : ''}">
+      <div class="mic-lb-rank">${i + 1}</div>
+      <img class="mic-lb-avatar" src="${escHtml(p.avatar || 'https://i0.hdslb.com/bfs/face/member/noface.jpg')}" alt="">
+      <div class="mic-lb-name">${escHtml(p.username)}</div>
+      <div class="mic-lb-score">${p.score}</div>
+    </div>
+  `).join('');
+  toggleModule('mic-leaderboard', sorted.length > 0);
 }
 
 // ---- Danmaku Wall ----

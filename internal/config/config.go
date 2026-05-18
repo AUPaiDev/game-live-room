@@ -56,6 +56,7 @@ type GameConfig struct {
 	SCTrigger   SCTriggerConfig   `mapstructure:"sc_trigger"`
 	Quiz        QuizConfig        `mapstructure:"quiz"`
 	Vote        VoteConfig        `mapstructure:"vote"`
+	Mic         MicConfig         `mapstructure:"mic"`
 }
 
 // GiftTriggerConfig configures the gift trigger module.
@@ -97,6 +98,13 @@ type VoteSlot struct {
 	GiftName string `mapstructure:"gift_name"`
 }
 
+// MicConfig configures the mic queue karaoke module.
+type MicConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Keyword  string `mapstructure:"keyword"`
+	GiftName string `mapstructure:"gift_name"`
+}
+
 // Load reads configuration from config.yaml and applies environment variable overrides.
 func Load() (*Config, error) {
 	v := viper.New()
@@ -133,6 +141,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("game.sc_trigger.min_price", 30)
 	v.SetDefault("game.quiz.answer_timeout", 30)
 	v.SetDefault("game.quiz.min_correct_ratio", 0.1)
+	v.SetDefault("game.mic.keyword", "报名")
+	v.SetDefault("game.mic.gift_name", "小花花")
 }
 
 func applyEnvOverrides(cfg *Config) {

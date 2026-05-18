@@ -12,6 +12,7 @@ import (
 	"game-live-room/internal/bilibili"
 	"game-live-room/internal/config"
 	"game-live-room/internal/game/gift"
+	"game-live-room/internal/game/mic"
 	"game-live-room/internal/game/quiz"
 	"game-live-room/internal/game/sc"
 	"game-live-room/internal/game/vote"
@@ -33,9 +34,10 @@ type Engine struct {
 	sc   *sc.Handler
 	quiz *quiz.Handler
 	vote *vote.Handler
+	mic  *mic.Handler
 
 	mu         sync.RWMutex
-	activeGame string // "" / "quiz" / "vote"
+	activeGame string // "" / "quiz" / "vote" / "mic"
 }
 
 // New creates a new game Engine.
@@ -49,6 +51,7 @@ func New(s *store.Store, h *hub.Hub, cfg *config.GameConfig, logger *zap.Logger)
 		sc:     sc.New(h, &cfg.SCTrigger, logger),
 		quiz:   quiz.New(s, h, &cfg.Quiz, logger),
 		vote:   vote.New(s, h, &cfg.Vote, logger),
+		mic:    mic.New(s, h, &cfg.Mic, logger),
 	}
 }
 
@@ -71,10 +74,12 @@ func (e *Engine) HandleLiveMessage(msg bilibili.LiveMessage) {
 	switch msg.Cmd {
 	case "DANMU_MSG":
 		e.quiz.HandleDanmaku(msg)
+		e.mic.HandleDanmaku(msg)
 		e.broadcastDanmaku(msg)
 	case "SEND_GIFT":
 		e.gift.HandleGift(msg)
 		e.vote.HandleGift(msg)
+		e.mic.HandleGift(msg)
 	case "SUPER_CHAT_MESSAGE":
 		e.sc.HandleSuperChat(msg)
 	}
@@ -100,6 +105,20 @@ func (e *Engine) HandleAdminCmd(action string, params map[string]interface{}) er
 	case "reset_vote":
 		e.vote.Reset()
 		return nil
+	case "start_mic":
+		return e.startMic(params)
+	case "stop_mic":
+		err := e.mic.Stop()
+		if err == nil {
+			e.setActiveGame("")
+		}
+		return err
+	case "mic_assign":
+		return e.micAssign(params)
+	case "mic_unassign":
+		return e.mic.UnassignSinger()
+	case "mic_kick":
+		return e.micKick(params)
 	default:
 		return fmt.Errorf("unknown action: %s", action)
 	}
@@ -141,6 +160,66 @@ func (e *Engine) startVote(params map[string]interface{}) error {
 	return nil
 }
 
+func (e *Engine) startMic(params map[string]interface{}) error {
+	sessionID, _ := params["session_id"].(string)
+	if sessionID == "" {
+		sessionID = randomSessionID("mic_")
+	}
+	keyword, _ := params["keyword"].(string)
+	if keyword == "" {
+		keyword = e.config.Mic.Keyword
+	}
+	giftName, _ := params["gift_name"].(string)
+	if giftName == "" {
+		giftName = e.config.Mic.GiftName
+	}
+	if err := e.mic.Start(sessionID, keyword, giftName); err != nil {
+		return err
+	}
+	e.setActiveGame("mic")
+	return nil
+}
+
+func (e *Engine) micAssign(params map[string]interface{}) error {
+	uidVal, ok := params["uid"]
+	if !ok {
+		return fmt.Errorf("missing uid")
+	}
+	var uid uint64
+	switch v := uidVal.(type) {
+	case float64:
+		if v < 0 || v != math.Trunc(v) {
+			return fmt.Errorf("invalid uid value")
+		}
+		uid = uint64(v)
+	case uint64:
+		uid = v
+	default:
+		return fmt.Errorf("invalid uid type")
+	}
+	return e.mic.AssignSinger(uid)
+}
+
+func (e *Engine) micKick(params map[string]interface{}) error {
+	uidVal, ok := params["uid"]
+	if !ok {
+		return fmt.Errorf("missing uid")
+	}
+	var uid uint64
+	switch v := uidVal.(type) {
+	case float64:
+		if v < 0 || v != math.Trunc(v) {
+			return fmt.Errorf("invalid uid value")
+		}
+		uid = uint64(v)
+	case uint64:
+		uid = v
+	default:
+		return fmt.Errorf("invalid uid type")
+	}
+	return e.mic.KickParticipant(uid)
+}
+
 func randomSessionID(prefix string) string {
 	b := make([]byte, 8)
 	if _, err := rand.Read(b); err != nil {
@@ -159,6 +238,11 @@ func (e *Engine) ActiveGame() string {
 // VoteHandler returns the vote handler for direct access.
 func (e *Engine) VoteHandler() *vote.Handler {
 	return e.vote
+}
+
+// MicHandler returns the mic handler for direct access.
+func (e *Engine) MicHandler() *mic.Handler {
+	return e.mic
 }
 
 // TriggerGift manually fires the gift trigger for the given gift name.

@@ -69,6 +69,43 @@ type OverlayConfig struct {
 	UpdatedAt  time.Time
 }
 
+// MicSession represents a mic queue karaoke activity session.
+type MicSession struct {
+	ID        string     `gorm:"primaryKey;size:64"`
+	Status    string     `gorm:"size:16"` // active/ended
+	Keyword   string     `gorm:"size:32;not null"`
+	GiftName  string     `gorm:"size:128;not null"`
+	Config    string     `gorm:"type:json"`
+	StartedAt time.Time
+	EndedAt   *time.Time
+}
+
+// MicParticipant represents a registered user in a mic session.
+type MicParticipant struct {
+	ID           uint64    `gorm:"primaryKey;autoIncrement"`
+	SessionID    string    `gorm:"size:64;not null;uniqueIndex:idx_session_uid"`
+	UID          uint64    `gorm:"not null;uniqueIndex:idx_session_uid"`
+	Username     string    `gorm:"size:128"`
+	Avatar       string    `gorm:"size:512"`
+	Score        int       `gorm:"not null;default:0"`
+	OnMic        bool      `gorm:"not null;default:false"`
+	MicCount     int       `gorm:"not null;default:0"`
+	RegisteredAt time.Time
+}
+
+// MicGiftRecord records individual gift scoring events during mic sessions.
+type MicGiftRecord struct {
+	ID            uint64    `gorm:"primaryKey;autoIncrement"`
+	SessionID     string    `gorm:"size:64;not null;index:idx_session_singer"`
+	SingerUID     uint64    `gorm:"not null;index:idx_session_singer"`
+	DonorUID      uint64    `gorm:"not null"`
+	DonorUsername string    `gorm:"size:128"`
+	GiftName      string    `gorm:"size:128"`
+	GiftCount     int
+	Score         int
+	CreatedAt     time.Time
+}
+
 // BiliCookie stores B站 login credentials for danmaku connection.
 type BiliCookie struct {
 	ID          uint64    `gorm:"primaryKey;autoIncrement"`

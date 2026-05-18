@@ -54,6 +54,21 @@ func DefaultConfig() LayoutConfig {
 				Position: ModulePosition{Preset: "bottom-left", X: 36, Y: 664},
 				Theme:    "cyberpunk",
 			},
+			"mic-singer": {
+				Visible:  false,
+				Position: ModulePosition{Preset: "top-left", X: 36, Y: 36},
+				Theme:    "cyberpunk",
+			},
+			"mic-leaderboard": {
+				Visible:  false,
+				Position: ModulePosition{Preset: "top-left", X: 36, Y: 140},
+				Theme:    "cyberpunk",
+			},
+			"mic-inactive": {
+				Visible:  false,
+				Position: ModulePosition{Preset: "bottom-left", X: 36, Y: 1008},
+				Theme:    "cyberpunk",
+			},
 		},
 	}
 }
